@@ -20,6 +20,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 
   callbacks: {
+    // authorized is called by middleware — return false → redirect to pages.signIn
+    authorized({ auth }) {
+      return !!auth;
+    },
+
     async jwt({ token, account }) {
       // On first sign-in, exchange Google id_token for our backend JWT
       if (account?.id_token) {

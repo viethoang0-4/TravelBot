@@ -19,12 +19,14 @@ export async function POST(request: NextRequest) {
       const session = await auth();
       const backendToken = session?.backendToken;
 
+      if (!backendToken) {
+        return Response.json({ error: "Unauthorized — please sign in" }, { status: 401 });
+      }
+
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${backendToken}`,
       };
-      if (backendToken) {
-        headers["Authorization"] = `Bearer ${backendToken}`;
-      }
 
       const upstream = await fetch(`${BACKEND_URL}/api/v1/chat`, {
         method: "POST",
