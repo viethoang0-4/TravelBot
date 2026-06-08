@@ -45,6 +45,8 @@ export interface Activity {
   weather_sensitive: boolean;
   tags: string[];
   image_url?: string;
+  /** Cụm từ tìm ảnh do Planner LLM sinh (vd "Ha Long Bay cruise") — ưu tiên dùng để search Pexels */
+  image_query?: string;
   /** Đánh giá 0..5 sao (tuỳ chọn) */
   rating?: number;
   /** Sự kiện cố định (chuyến bay, check-in/out...) — không cho phép drag-drop */
@@ -126,11 +128,24 @@ export interface ChatMessage {
 
 export type RightPanelTab = "timeline" | "map" | "budget" | "checklist";
 
+/** Một câu hỏi làm rõ do clarify agent sinh (mỗi câu cho 1 trường còn thiếu) */
+export interface ClarifyQuestion {
+  field: string;
+  question: string;
+  options: string[];
+}
+
+export interface ClarifyPayload {
+  intro: string;
+  questions: ClarifyQuestion[];
+}
+
 export type StreamEvent =
   | { type: "thinking"; content: string }
   | { type: "searching"; content: string }
   | { type: "text"; content: string }
   | { type: "itinerary"; content: Itinerary }
+  | { type: "questions"; content: ClarifyPayload }
   | { type: "error"; content: string }
   | { type: "done" };
 

@@ -25,6 +25,7 @@ class Activity(BaseModel):
     weather_sensitive: bool = False
     tags: list[str] = []
     image_url: Optional[str] = None
+    image_query: Optional[str] = None  # cụm từ tìm ảnh do Planner sinh (vd "Ha Long Bay cruise")
 
 
 class DayPlan(BaseModel):

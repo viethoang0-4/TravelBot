@@ -24,6 +24,20 @@ class Settings(BaseSettings):
     # LLM model name — override to switch models
     gemini_model: str = "gemini-3-flash-preview"
 
+    # Multi-agent LLM routing — each agent picks a "fast" or "strong" tier.
+    # Change provider/model freely (google | anthropic | openai).
+    llm_fast_provider: str = "google"
+    llm_fast_model: str = "gemini-3-flash-preview"
+    llm_strong_provider: str = "google"
+    llm_strong_model: str = "gemini-3-flash-preview"
+
+    # Provider API keys (only fill the ones you use)
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+
+    # Reflection loop: how many times the Critic can send the plan back to the Planner
+    max_reflection_loops: int = 2
+
     # Auth — JWT
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

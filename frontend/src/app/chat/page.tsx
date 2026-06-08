@@ -2,10 +2,12 @@ import Navbar from "@/components/layout/Navbar";
 import ChatPanel from "@/components/chat/ChatPanel";
 import RightPanel from "@/components/layout/RightPanel";
 import DraftsBar from "@/components/drafts/DraftsBar";
+import ItineraryHydrator from "@/components/drafts/ItineraryHydrator";
 
 export default function ChatPage() {
   return (
     <div className="flex flex-col h-full bg-background">
+      <ItineraryHydrator />
       <Navbar />
       <DraftsBar />
 

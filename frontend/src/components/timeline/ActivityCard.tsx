@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Activity } from "@/types/travel";
 import { Badge } from "@/components/ui/badge";
 import { useTravelStore } from "@/store/travel-store";
+import { isActivityLocked } from "@/lib/activity-lock";
+import { useResolvedImage } from "@/lib/use-pexels-image";
 import {
   Bed,
   Camera,
@@ -76,20 +79,18 @@ function formatDuration(minutes: number): string {
   return m > 0 ? `${h}g${m}p` : `${h}g`;
 }
 
-function getFallbackImage(activity: Activity): string {
-  if (activity.image_url) return activity.image_url;
-  const query = encodeURIComponent(
-    `${activity.location.name} vietnam travel`.slice(0, 50)
-  );
-  return `https://source.unsplash.com/400x200/?${query}&sig=${activity.id}`;
-}
-
 interface Props {
   activity: Activity;
   sortable?: boolean;
+  /** Điểm đến của lịch trình — dùng làm "vùng" khi tra ảnh theo loại */
+  region?: string;
 }
 
-export default function ActivityCard({ activity, sortable = false }: Props) {
+export default function ActivityCard({
+  activity,
+  sortable = false,
+  region = "",
+}: Props) {
   const selectedActivityId = useTravelStore((s) => s.selectedActivityId);
   const hoveredActivityId = useTravelStore((s) => s.hoveredActivityId);
   const setSelectedActivity = useTravelStore((s) => s.setSelectedActivity);
@@ -101,11 +102,28 @@ export default function ActivityCard({ activity, sortable = false }: Props) {
     )
   );
 
+  const [imgFailed, setImgFailed] = useState(false);
+
   const isSelected = selectedActivityId === activity.id;
   const isHovered = hoveredActivityId === activity.id;
-  const isLocked = activity.is_locked === true;
+  const isLocked = isActivityLocked(activity);
   const config = TYPE_CONFIG[activity.type] || TYPE_CONFIG.activity;
   const Icon = config.icon;
+
+  // Ảnh: image_url thật → image_query (LLM) → tên địa điểm (có xác thực) → loại+vùng → loại chung
+  const resolvedSrc = useResolvedImage(
+    activity.location.name || activity.title,
+    region,
+    activity.type,
+    activity.id,
+    activity.image_url,
+    activity.image_query
+  );
+  const showImage = !!resolvedSrc && !imgFailed;
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [resolvedSrc]);
 
   const sortableProps = useSortable({
     id: activity.id,
@@ -145,18 +163,27 @@ export default function ActivityCard({ activity, sortable = false }: Props) {
         isLocked && "ring-1 ring-clay/20"
       )}
     >
-      {/* Hero image */}
+      {/* Hero image (ảnh thật nếu có image_url hợp lệ, ngược lại placeholder) */}
       <div className="relative h-32 overflow-hidden bg-gradient-to-br from-sand to-cream">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={getFallbackImage(activity)}
-          alt={activity.title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
+        {showImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={resolvedSrc}
+            alt={activity.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div
+            className={cn(
+              "w-full h-full flex items-center justify-center",
+              config.bg
+            )}
+          >
+            <Icon className="w-12 h-12 text-white/40" />
+          </div>
+        )}
 
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -199,7 +226,7 @@ export default function ActivityCard({ activity, sortable = false }: Props) {
           isLocked ? (
             <div
               className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white/70 flex items-center justify-center"
-              title="Sự kiện cố định — không thể sắp xếp lại"
+              title="Sự kiện cố định (di chuyển/lưu trú) — không thể đổi chỗ"
             >
               <Lock className="w-3.5 h-3.5" />
             </div>

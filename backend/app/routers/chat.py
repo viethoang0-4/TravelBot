@@ -6,11 +6,11 @@ SSE event format:
     data: {"type": "searching",  "content": "..."}
     data: {"type": "text",       "content": "<token>"}
     data: {"type": "itinerary",  "content": {<json>}}
+    data: {"type": "questions",  "content": {"intro": "...", "questions": [...]}}
     data: {"type": "error",      "content": "..."}
     data: {"type": "done"}
 """
 import json
-import re
 import traceback
 
 from fastapi import APIRouter, Depends
@@ -18,6 +18,7 @@ from fastapi.responses import StreamingResponse
 
 from ..agents.graph import get_graph
 from ..agents.state import TravelAgentState
+from ..agents.workers.common import CLARIFY_INTRO
 from ..auth.dependencies import get_current_user
 from ..db.base import ItineraryRepository
 from ..db.dependencies import get_itinerary_repo
@@ -45,48 +46,70 @@ async def chat(
     initial_state: TravelAgentState = {
         "messages": [m.model_dump() for m in request.messages],
         "image": request.image,
-        "intent": "",
-        "search_results": None,
-        "full_response": "",
-        "itinerary": None,
+        "revision_count": 0,
+    }
+
+    # Status line shown when each agent/node starts (uses existing thinking/searching events)
+    _STATUS = {
+        "supervisor": ("thinking", "Đang phân tích yêu cầu..."),
+        "clarify": ("thinking", "Đang xác định thông tin cần thiết..."),
+        "research": ("searching", "Đang tìm thông tin mới nhất..."),
+        "planner": ("thinking", "Đang lập lịch trình..."),
+        "weather": ("searching", "Đang kiểm tra thời tiết..."),
+        "critic": ("thinking", "Đang rà soát tính khả thi..."),
+        "presenter": ("thinking", "Đang hoàn thiện..."),
+        "chat": ("thinking", "TravelBot đang suy nghĩ..."),
     }
 
     async def generate():
         try:
             yield _sse("thinking", "TravelBot đang xử lý...")
 
-            full_text = ""
+            captured_itinerary = None
+            captured_questions = None
 
             async for event in graph.astream_events(initial_state, version="v2"):
                 event_name = event.get("event", "")
                 node_name = event.get("name", "")
 
-                if event_name == "on_chain_start":
-                    if node_name == "router":
-                        yield _sse("thinking", "Đang phân tích yêu cầu...")
-                    elif node_name == "search":
-                        yield _sse("searching", "Đang tìm kiếm thông tin mới nhất...")
-                    elif node_name == "llm":
-                        yield _sse("thinking", "TravelBot đang suy nghĩ...")
+                if event_name == "on_chain_start" and node_name in _STATUS:
+                    etype, msg = _STATUS[node_name]
+                    yield _sse(etype, msg)
 
                 elif event_name == "on_chat_model_stream":
+                    # Only presenter/chat use streaming models → these are user-facing tokens
                     chunk = event.get("data", {}).get("chunk")
                     if chunk is not None:
                         token = chunk.content if hasattr(chunk, "content") else ""
                         if token:
-                            full_text += token
                             yield _sse("text", token)
 
-            # Extract & persist itinerary — attach user_id
-            json_match = re.search(r"```json\n([\s\S]*?)\n```", full_text)
-            if json_match:
+                elif event_name == "on_chain_end":
+                    out = event.get("data", {}).get("output")
+                    if isinstance(out, dict):
+                        if out.get("final_itinerary"):
+                            captured_itinerary = out["final_itinerary"]
+                        if out.get("clarify_questions"):
+                            captured_questions = out["clarify_questions"]
+                        # refuse node không stream token → đẩy câu từ chối cố định ra dưới dạng text
+                        if node_name == "refuse" and out.get("full_response"):
+                            yield _sse("text", out["full_response"])
+
+            # Clarify branch: ask the user for the missing info instead of planning.
+            if captured_questions:
+                yield _sse(
+                    "questions",
+                    {"intro": CLARIFY_INTRO, "questions": captured_questions},
+                )
+
+            # Persist the validated itinerary — attach user_id
+            if captured_itinerary:
                 try:
-                    itinerary = json.loads(json_match.group(1))
-                    itinerary["user_id"] = user_id  # scope to user
-                    saved = await itinerary_repo.save(itinerary)
+                    captured_itinerary["user_id"] = user_id  # scope to user
+                    saved = await itinerary_repo.save(captured_itinerary)
                     yield _sse("itinerary", saved)
-                except (json.JSONDecodeError, Exception):
-                    pass
+                except Exception as exc:
+                    print(f"[CHAT] save itinerary failed: {exc}")
 
             yield _sse("done")
 

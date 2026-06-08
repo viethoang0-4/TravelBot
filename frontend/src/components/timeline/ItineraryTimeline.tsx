@@ -21,6 +21,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { mockItinerary } from "@/lib/mock-data";
+import { isActivityLocked } from "@/lib/activity-lock";
+import { useResolvedImage } from "@/lib/use-pexels-image";
 import { Activity, DayPlan } from "@/types/travel";
 import {
   DndContext,
@@ -51,11 +53,6 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function getDestinationHeroImage(destination: string): string {
-  const query = encodeURIComponent(`${destination} vietnam landscape travel`);
-  return `https://source.unsplash.com/800x400/?${query}&sig=${destination.length}`;
-}
-
 export default function ItineraryTimeline() {
   const isPlanning = useTravelStore((s) => s.isPlanning);
   const itinerary = useActiveItinerary();
@@ -67,6 +64,14 @@ export default function ItineraryTimeline() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  // Ảnh hero theo điểm đến (có xác thực; không khớp → ảnh phong cảnh vùng → null)
+  const heroSrc = useResolvedImage(
+    itinerary?.destination ?? null,
+    itinerary?.destination ?? "",
+    "activity",
+    itinerary?.destination ?? "hero"
   );
 
   if (isPlanning && !itinerary) {
@@ -109,8 +114,17 @@ export default function ItineraryTimeline() {
     const newIdx = day.activities.findIndex((a) => a.id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
 
-    const originalTimeSlots = day.activities.map((a) => a.time);
     let newActivities = arrayMove(day.activities, oldIdx, newIdx);
+
+    // Chặn nếu thao tác làm xê dịch bất kỳ ô cố định nào (vd: kéo 1 ô vượt qua
+    // ô "xuất phát"/"kết thúc"). Ô cố định phải giữ nguyên vị trí.
+    const lockedDisplaced = day.activities.some((act, oldI) => {
+      if (!isActivityLocked(act)) return false;
+      return newActivities.findIndex((a) => a.id === act.id) !== oldI;
+    });
+    if (lockedDisplaced) return;
+
+    const originalTimeSlots = day.activities.map((a) => a.time);
     newActivities = newActivities.map((act, index) => ({
       ...act,
       time: originalTimeSlots[index],
@@ -128,19 +142,22 @@ export default function ItineraryTimeline() {
       <ScrollArea className="h-full">
         <div className="p-4 pb-24 space-y-4">
 
-          {/* === Glass card header with hero image === */}
+          {/* === Glass card header === */}
           <div className="rounded-lg overflow-hidden shadow-sm border border-border relative">
-            {/* Hero background image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={getDestinationHeroImage(itinerary.destination)}
-              alt={itinerary.destination}
-              className="absolute inset-0 w-full h-full object-cover blur-[2px] brightness-90 scale-105"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            {/* Gradient nền (luôn có) + ảnh điểm đến Pexels phủ lên nếu lấy được */}
+            <div className="absolute inset-0 bg-gradient-to-br from-terracotta/30 via-terracotta/10 to-sage/20" />
+            {heroSrc && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={heroSrc}
+                alt={itinerary.destination}
+                className="absolute inset-0 w-full h-full object-cover blur-[2px] brightness-90 scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
             {/* Glass overlay */}
             <div className="relative bg-card/80 dark:bg-card/85 backdrop-blur-md p-4">
               <div className="flex items-start justify-between gap-2">
@@ -217,6 +234,7 @@ export default function ItineraryTimeline() {
                         key={activity.id}
                         activity={activity}
                         sortable
+                        region={itinerary.destination}
                       />
                     ))}
                   </SortableContext>

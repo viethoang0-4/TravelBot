@@ -5,9 +5,15 @@ import { useTravelStore } from "@/store/travel-store";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import StreamingMessage from "./StreamingMessage";
+import ClarifyCard from "./ClarifyCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Compass } from "lucide-react";
-import { ChatMessage as ChatMessageType, Itinerary, StreamEvent } from "@/types/travel";
+import {
+  ChatMessage as ChatMessageType,
+  ClarifyPayload,
+  Itinerary,
+  StreamEvent,
+} from "@/types/travel";
 import { nanoid } from "@/lib/utils";
 
 /** Heuristic: phát hiện ý định lập kế hoạch để bật skeleton */
@@ -24,6 +30,7 @@ export default function ChatPanel() {
     isStreaming,
     streamingText,
     streamingStatus,
+    pendingClarify,
     addMessage,
     updateLastAssistantMessage,
     addDraft,
@@ -32,6 +39,7 @@ export default function ChatPanel() {
     setIsStreaming,
     setStreamingText,
     setStreamingStatus,
+    setPendingClarify,
   } = useTravelStore();
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -46,6 +54,9 @@ export default function ChatPanel() {
       abortRef.current?.abort();
       return;
     }
+
+    // Người dùng gửi tin mới → bỏ bộ câu hỏi làm rõ đang chờ (nếu có)
+    setPendingClarify(null);
 
     const userMsg: ChatMessageType = {
       id: nanoid(),
@@ -94,6 +105,7 @@ export default function ChatPanel() {
       const decoder = new TextDecoder();
       let fullText = "";
       let itinerary: Itinerary | null = null;
+      let clarify: ClarifyPayload | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -115,6 +127,13 @@ export default function ChatPanel() {
               setStreamingStatus("");
             } else if (event.type === "itinerary") {
               itinerary = event.content;
+            } else if (event.type === "questions") {
+              // Agent cần thêm thông tin → hiện thẻ câu hỏi, bỏ skeleton
+              clarify = event.content;
+              fullText = event.content.intro;
+              setStreamingText(fullText);
+              setStreamingStatus("");
+              if (willPlan) stopPlanning();
             } else if (event.type === "error") {
               fullText = `⚠️ Lỗi từ Gemini: ${event.content}`;
               setStreamingText(fullText);
@@ -129,6 +148,10 @@ export default function ChatPanel() {
 
       const displayText = fullText.replace(/```json\n[\s\S]*?\n```/g, "").trim();
       updateLastAssistantMessage(fullText);
+
+      if (clarify) {
+        setPendingClarify(clarify);
+      }
 
       if (itinerary) {
         addDraft(itinerary);
@@ -186,6 +209,10 @@ export default function ChatPanel() {
 
           {isStreaming && (
             <StreamingMessage text={streamingText} status={streamingStatus} />
+          )}
+
+          {!isStreaming && pendingClarify && (
+            <ClarifyCard payload={pendingClarify} onSubmit={(t) => handleSend(t)} />
           )}
 
           <div ref={bottomRef} />

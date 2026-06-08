@@ -3,12 +3,14 @@
 import { create } from "zustand";
 import {
   ChatMessage,
+  ClarifyPayload,
   Itinerary,
   ItineraryDraft,
   RightPanelTab,
 } from "@/types/travel";
 import { Notification } from "@/types/notification";
 import { nanoid } from "@/lib/utils";
+import { apiClient } from "@/lib/api-client";
 
 /** Các bước hiển thị trên Skeleton screen khi đang lập kế hoạch */
 export type PlanningStep =
@@ -25,6 +27,12 @@ interface TravelStore {
   isStreaming: boolean;
   streamingText: string;
   streamingStatus: string;
+
+  /**
+   * Bộ câu hỏi làm rõ đang chờ người dùng trả lời (do clarify agent gửi qua SSE).
+   * null khi không có câu hỏi nào đang chờ.
+   */
+  pendingClarify: ClarifyPayload | null;
 
   /**
    * Khi true → ItineraryPanel sẽ render Skeleton thay vì timeline thật.
@@ -57,6 +65,7 @@ interface TravelStore {
   setIsStreaming: (v: boolean) => void;
   setStreamingText: (v: string) => void;
   setStreamingStatus: (v: string) => void;
+  setPendingClarify: (v: ClarifyPayload | null) => void;
   clearMessages: () => void;
 
   // ── Planning skeleton ─────────────────────────────────
@@ -70,6 +79,8 @@ interface TravelStore {
    * Tự động set draft này thành active.
    */
   addDraft: (itinerary: Itinerary) => void;
+  /** Thay toàn bộ danh sách drafts (vd: hydrate từ backend khi đăng nhập) */
+  setDrafts: (drafts: ItineraryDraft[]) => void;
   /** Ghi đè itinerary của một draft (vd: sau khi user kéo thả) */
   updateDraftItinerary: (draftId: string, itinerary: Itinerary) => void;
   /** Chuyển draft đang active — KHÔNG xoá lịch sử chat */
@@ -97,12 +108,43 @@ interface TravelStore {
 
 const nowIso = () => new Date().toISOString();
 
+// ── Backend sync (fire-and-forget; the store updates optimistically) ──────
+// The "status" (draft/confirmed) is stored alongside the itinerary on the
+// backend so it survives logout/login.
+async function persistDraft(draft: ItineraryDraft): Promise<void> {
+  try {
+    await apiClient.post("/api/v1/itineraries", {
+      ...draft.itinerary,
+      status: draft.status,
+    });
+  } catch (e) {
+    console.error("[drafts] persist failed", e);
+  }
+}
+
+async function removeDraftFromBackend(itineraryId?: string): Promise<void> {
+  if (!itineraryId) return;
+  try {
+    await apiClient.delete(`/api/v1/itineraries/${itineraryId}`);
+  } catch (e) {
+    console.error("[drafts] delete failed", e);
+  }
+}
+
+function emitToast(notification: Notification): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("travelbot:new-notifications", { detail: [notification] })
+  );
+}
+
 export const useTravelStore = create<TravelStore>((set, get) => ({
   // Chat
   messages: [],
   isStreaming: false,
   streamingText: "",
   streamingStatus: "",
+  pendingClarify: null,
   isPlanning: false,
   planningStep: "intent",
 
@@ -137,10 +179,12 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
   setIsStreaming: (isStreaming) => set({ isStreaming }),
   setStreamingText: (streamingText) => set({ streamingText }),
   setStreamingStatus: (streamingStatus) => set({ streamingStatus }),
+  setPendingClarify: (pendingClarify) => set({ pendingClarify }),
 
   clearMessages: () =>
     set({
       messages: [],
+      pendingClarify: null,
       // KHÔNG xoá drafts — user có thể muốn giữ lịch trình đã tạo
       selectedActivityId: null,
       hoveredActivityId: null,
@@ -168,14 +212,25 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
       };
     }),
 
-  updateDraftItinerary: (draftId, itinerary) =>
+  setDrafts: (drafts) =>
+    set((s) => ({
+      drafts,
+      activeDraftId: drafts.some((d) => d.draft_id === s.activeDraftId)
+        ? s.activeDraftId
+        : drafts[0]?.draft_id ?? null,
+    })),
+
+  updateDraftItinerary: (draftId, itinerary) => {
     set((s) => ({
       drafts: s.drafts.map((d) =>
         d.draft_id === draftId
           ? { ...d, itinerary, updated_at: nowIso() }
           : d
       ),
-    })),
+    }));
+    const draft = get().drafts.find((d) => d.draft_id === draftId);
+    if (draft) persistDraft(draft); // save reordered/edited itinerary
+  },
 
   switchDraft: (draftId) => {
     const exists = get().drafts.some((d) => d.draft_id === draftId);
@@ -188,7 +243,8 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
     });
   },
 
-  deleteDraft: (draftId) =>
+  deleteDraft: (draftId) => {
+    const draft = get().drafts.find((d) => d.draft_id === draftId);
     set((s) => {
       const newDrafts = s.drafts.filter((d) => d.draft_id !== draftId);
       const newActive =
@@ -196,25 +252,57 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
           ? newDrafts[newDrafts.length - 1]?.draft_id ?? null
           : s.activeDraftId;
       return { drafts: newDrafts, activeDraftId: newActive };
-    }),
+    });
+    removeDraftFromBackend(draft?.itinerary.itinerary_id);
+  },
 
-  confirmDraft: (draftId) =>
+  confirmDraft: (draftId) => {
     set((s) => ({
       drafts: s.drafts.map((d) =>
         d.draft_id === draftId
           ? { ...d, status: "confirmed", updated_at: nowIso() }
           : d
       ),
-    })),
+    }));
+    const draft = get().drafts.find((d) => d.draft_id === draftId);
+    if (!draft) return;
+    persistDraft(draft);
+    emitToast({
+      notification_id: `confirm-${Date.now()}`,
+      user_id: "",
+      itinerary_id: draft.itinerary.itinerary_id,
+      activity_id: null,
+      title: "Đã chốt lịch trình ✅",
+      body: `"${draft.itinerary.title}" đã được lưu vào tài khoản của bạn.`,
+      severity: "info",
+      created_at: nowIso(),
+      read: true,
+    });
+  },
 
-  unconfirmDraft: (draftId) =>
+  unconfirmDraft: (draftId) => {
     set((s) => ({
       drafts: s.drafts.map((d) =>
         d.draft_id === draftId
           ? { ...d, status: "draft", updated_at: nowIso() }
           : d
       ),
-    })),
+    }));
+    const draft = get().drafts.find((d) => d.draft_id === draftId);
+    if (!draft) return;
+    persistDraft(draft);
+    emitToast({
+      notification_id: `unconfirm-${Date.now()}`,
+      user_id: "",
+      itinerary_id: draft.itinerary.itinerary_id,
+      activity_id: null,
+      title: "Đã hủy chốt lịch trình",
+      body: `"${draft.itinerary.title}" đã chuyển về trạng thái nháp.`,
+      severity: "info",
+      created_at: nowIso(),
+      read: true,
+    });
+  },
 
   // Selection
   setSelectedActivity: (selectedActivityId) => set({ selectedActivityId }),

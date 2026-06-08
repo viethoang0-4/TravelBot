@@ -14,6 +14,7 @@ import {
   Sparkles,
   Wallet,
   X,
+  XCircle,
 } from "lucide-react";
 import {
   exportElementAsImage,
@@ -43,6 +44,10 @@ function formatDate(dateStr: string): string {
 export default function SummaryDashboard({ open, itinerary, draftId, onClose }: Props) {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const confirmDraft = useTravelStore((s) => s.confirmDraft);
+  const unconfirmDraft = useTravelStore((s) => s.unconfirmDraft);
+  const isConfirmed = useTravelStore(
+    (s) => s.drafts.find((d) => d.draft_id === draftId)?.status === "confirmed"
+  );
 
   const allActivities = itinerary.days.flatMap((d) => d.activities);
   const highlights = [...allActivities]
@@ -51,6 +56,10 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
 
   const handleConfirmAndShare = () => {
     confirmDraft(draftId);
+  };
+
+  const handleUnconfirm = () => {
+    unconfirmDraft(draftId);
   };
 
   return (
@@ -178,13 +187,30 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
 
               {/* Action buttons */}
               <div className="border-t border-border p-4 bg-muted/30 rounded-b-lg space-y-2">
-                <Button
-                  onClick={handleConfirmAndShare}
-                  className="w-full bg-terracotta hover:bg-terracotta-dark text-white"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Chốt hành trình này
-                </Button>
+                {isConfirmed ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center justify-center gap-2 h-9 rounded-md bg-sage/10 text-sage text-sm font-semibold border border-sage/30">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Đã chốt
+                    </div>
+                    <Button
+                      onClick={handleUnconfirm}
+                      variant="outline"
+                      className="border-border hover:border-destructive hover:text-destructive"
+                    >
+                      <XCircle className="w-4 h-4 mr-1.5" />
+                      Hủy chốt
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleConfirmAndShare}
+                    className="w-full bg-terracotta hover:bg-terracotta-dark text-white"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    Chốt hành trình này
+                  </Button>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Button variant="outline" size="sm" onClick={() => exportItineraryAsICS(itinerary)} className="border-border hover:border-terracotta hover:text-terracotta">
                     <CalendarPlus className="w-3.5 h-3.5 mr-1" />
