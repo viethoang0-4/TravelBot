@@ -31,7 +31,7 @@ jobs:
           rm -f .env .env.* 2>/dev/null || true   # phòng hờ: không bao giờ đẩy secrets
           # HF Space cần README.md (frontmatter sdk:docker). File này bị .gitignore ở repo
           # gốc (không đẩy .md lên GitHub) nên sinh tại đây để HF build đúng.
-          printf '%s\n' '---' 'title: Compasso API' 'emoji: "🧭"' 'colorFrom: orange' 'colorTo: green' 'sdk: docker' 'app_port: 7860' 'pinned: false' '---' '' 'Compasso backend (FastAPI + LangGraph) — auto-deploy from GitHub.' > README.md
+          printf '%s\n' '---' 'title: Compasso API' 'emoji: "🧭"' 'colorFrom: yellow' 'colorTo: green' 'sdk: docker' 'app_port: 7860' 'pinned: false' '---' '' 'Compasso backend (FastAPI + LangGraph) — auto-deploy from GitHub.' > README.md
           rm -rf .git
           git init -q -b main
           git config user.email "ci@github.actions"
