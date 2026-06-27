@@ -28,6 +28,7 @@ def _build(provider: str, model: str, streaming: bool) -> BaseChatModel:
             google_api_key=settings.gemini_api_key,
             streaming=streaming,
             timeout=timeout,
+            max_retries=2,  # mặc định 6 → quota 429 bị retry 6 lần/call (spam log); hạ xuống
         )
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
@@ -36,6 +37,7 @@ def _build(provider: str, model: str, streaming: bool) -> BaseChatModel:
             api_key=settings.anthropic_api_key,
             streaming=streaming,
             timeout=timeout,
+            max_retries=2,
         )
     if provider == "openai":
         from langchain_openai import ChatOpenAI

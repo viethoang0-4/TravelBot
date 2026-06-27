@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 
 from ..agents.graph import get_graph
 from ..agents.state import TravelAgentState
-from ..agents.workers.common import CLARIFY_INTRO
+from ..agents.workers.common import CLARIFY_INTRO, is_quota_error
 from ..auth.dependencies import get_current_user
 from ..db.base import ItineraryRepository
 from ..db.dependencies import get_itinerary_repo
@@ -123,7 +123,13 @@ async def chat(
 
         except Exception as exc:
             traceback.print_exc()
-            yield _sse("error", str(exc))
+            if is_quota_error(exc):
+                yield _sse(
+                    "error",
+                    "Hệ thống AI đang quá tải hạn mức (quota) — vui lòng thử lại sau ít phút.",
+                )
+            else:
+                yield _sse("error", str(exc))
             yield _sse("done")
 
     return StreamingResponse(

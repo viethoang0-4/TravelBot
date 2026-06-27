@@ -11,6 +11,23 @@ from ..llm_factory import get_chat_model
 _T = TypeVar("_T", bound=BaseModel)
 
 
+class QuotaExceededError(Exception):
+    """Hết hạn mức / rate limit của LLM provider — DỪNG graph thay vì nuốt lỗi rồi lặp tiếp."""
+
+
+# Dấu hiệu lỗi quota/rate-limit (Gemini 429 ResourceExhausted, OpenAI/Anthropic rate limit...).
+_QUOTA_MARKERS = (
+    "resourceexhausted", "resource_exhausted", "rate limit", "rate_limit",
+    "ratelimit", "429", "quota", "too many requests",
+)
+
+
+def is_quota_error(e: BaseException) -> bool:
+    """True nếu exception là do hết hạn mức / vượt rate-limit của LLM."""
+    s = f"{type(e).__name__}: {e}".lower()
+    return any(m in s for m in _QUOTA_MARKERS)
+
+
 def extract_json(text: str) -> Optional[dict]:
     """Pull a JSON object out of an LLM text response (handles ```json fences)."""
     if not text:
@@ -51,7 +68,12 @@ async def structured_invoke(agent: str, schema: Type[_T], messages: list) -> Opt
         data = extract_json(getattr(raw, "content", "") or "")
         if data is not None:
             return schema(**data)
+    except QuotaExceededError:
+        raise
     except Exception as e:
+        if is_quota_error(e):
+            # Hết quota → dừng ngay, KHÔNG fallback (sẽ chỉ tốn thêm 1 call lỗi nữa).
+            raise QuotaExceededError(str(e)) from e
         print(f"[STRUCT] native structured_output lỗi ({type(e).__name__}: {e}); thử fallback JSON")
 
     # 2) Fallback: gọi thường + ép JSON theo schema
@@ -66,6 +88,8 @@ async def structured_invoke(agent: str, schema: Type[_T], messages: list) -> Opt
         if data is not None:
             return schema(**data)
     except Exception as e:
+        if is_quota_error(e):
+            raise QuotaExceededError(str(e)) from e
         print(f"[STRUCT] fallback JSON lỗi: {e}")
     return None
 
