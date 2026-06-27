@@ -82,7 +82,7 @@ export function exportItineraryAsICS(itinerary: Itinerary) {
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//TravelBot//VN//EN",
+    "PRODID:-//Compasso//VN//EN",
     "CALSCALE:GREGORIAN",
   ];
 
@@ -103,7 +103,7 @@ export function exportItineraryAsICS(itinerary: Itinerary) {
 
       lines.push(
         "BEGIN:VEVENT",
-        `UID:${act.id}@travelbot`,
+        `UID:${act.id}@compasso`,
         `DTSTART:${start}`,
         `DTEND:${endStr}`,
         `SUMMARY:${escape(act.title)}`,

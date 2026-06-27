@@ -2,12 +2,12 @@
 LangGraph multi-agent travel graph.
 
 Topology:
-    START → supervisor ─┬─ plan_trip/modify_plan → research → planner → weather → critic
-                        │                              ▲                            │
-                        │                              └─ revise (< max loops) ─────┤
-                        │                                                           │
-                        │                                  approved → presenter → END
-                        └─ general_chat/analyze_image ───────────────→ chat → END
+    START → supervisor ─┬─ plan_trip/modify_plan → research → social → planner → grounding → weather → critic
+                        │                                  ▲ (web review + vlog)  (Goong: tọa độ+route thật)  │
+                        │                              planner ─┴─ revise (< max loops) ────────────────────┤
+                        │                                                                                    │
+                        │                                                   approved → presenter → END
+                        └─ general_chat/analyze_image ────────────────────────────→ chat → END
 """
 from functools import lru_cache
 
@@ -19,7 +19,9 @@ from .workers.supervisor import supervisor_node
 from .workers.clarify import clarify_node
 from .workers.refuse import refuse_node
 from .workers.research import research_node
+from .workers.social import social_node
 from .workers.planner import planner_node
+from .workers.grounding import grounding_node
 from .workers.weather_agent import weather_node
 from .workers.critic import critic_node
 from .workers.presenter import presenter_node
@@ -65,7 +67,9 @@ def get_graph():
     builder.add_node("clarify", clarify_node)
     builder.add_node("refuse", refuse_node)
     builder.add_node("research", research_node)
+    builder.add_node("social", social_node)
     builder.add_node("planner", planner_node)
+    builder.add_node("grounding", grounding_node)
     builder.add_node("weather", weather_node)
     builder.add_node("critic", critic_node)
     builder.add_node("presenter", presenter_node)
@@ -79,8 +83,10 @@ def get_graph():
     )
     builder.add_edge("clarify", END)
     builder.add_edge("refuse", END)
-    builder.add_edge("research", "planner")
-    builder.add_edge("planner", "weather")
+    builder.add_edge("research", "social")
+    builder.add_edge("social", "planner")
+    builder.add_edge("planner", "grounding")
+    builder.add_edge("grounding", "weather")
     builder.add_edge("weather", "critic")
     builder.add_conditional_edges(
         "critic", _route_after_critic, {"planner": "planner", "presenter": "presenter"}

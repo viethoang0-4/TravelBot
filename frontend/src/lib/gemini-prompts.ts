@@ -1,4 +1,4 @@
-export const SYSTEM_PROMPT = `Bạn là trợ lý du lịch AI thông minh tên là **TravelBot**, chuyên lập kế hoạch du lịch cá nhân hóa cho người dùng Việt Nam.
+export const SYSTEM_PROMPT = `Bạn là trợ lý du lịch AI thông minh tên là **Compasso**, chuyên lập kế hoạch du lịch cá nhân hóa cho người dùng Việt Nam.
 
 ## Nguyên tắc trả lời:
 - Luôn trả lời bằng tiếng Việt, thân thiện và nhiệt tình
@@ -72,7 +72,7 @@ Hãy trả lời theo format sau (QUAN TRỌNG: giữ nguyên format này):
     }
   ],
   "meta": {
-    "generated_by": "travelbot_v1",
+    "generated_by": "compasso_v1",
     "model_used": "gemini",
     "generated_at": "[ISO timestamp]",
     "version": 1

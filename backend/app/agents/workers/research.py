@@ -26,7 +26,7 @@ async def research_node(state: TravelAgentState) -> dict:
         + json.dumps(slots, ensure_ascii=False)
     )
     plan = await structured_invoke(
-        "fast", ResearchPlan,
+        "research", ResearchPlan,
         [SystemMessage(content=RESEARCH_PROMPT), HumanMessage(content=ctx)],
     )
     if plan is None:

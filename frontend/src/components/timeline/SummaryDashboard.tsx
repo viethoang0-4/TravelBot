@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   FileImage,
   FileText,
+  Leaf,
   MapPin,
   Share2,
   Sparkles,
@@ -155,6 +156,77 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                       })}
                     </div>
                   </div>
+
+                  {/* Dấu chân carbon — quãng đường THẬT (Goong) + chặng liên tỉnh; hệ số DEFRA 2023 */}
+                  {itinerary.carbon && (
+                    <div className="rounded-sm border border-sage/30 bg-sage/5 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-sage flex items-center gap-1.5">
+                          <Leaf className="w-3.5 h-3.5" />
+                          Dấu chân carbon
+                        </p>
+                        <span className="text-lg font-bold text-sage">
+                          ~{itinerary.carbon.total_kg} kg CO₂
+                        </span>
+                      </div>
+
+                      {itinerary.carbon.modes && (
+                        <div className="space-y-1.5 text-xs">
+                          <p className="text-muted-foreground">
+                            Di chuyển nội vùng (quãng đường thật):{" "}
+                            {itinerary.carbon.local_km} km
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-sm bg-card border border-border p-2 flex items-center justify-between">
+                              <span>🚗 Ô tô</span>
+                              <span className="font-semibold">
+                                {itinerary.carbon.modes.car.local_kg} kg
+                              </span>
+                            </div>
+                            <div className="rounded-sm bg-card border border-border p-2 flex items-center justify-between">
+                              <span>🏍️ Xe máy</span>
+                              <span className="font-semibold">
+                                {itinerary.carbon.modes.motorbike.local_kg} kg
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {itinerary.carbon.intercity && (
+                        <div className="mt-2 flex items-center justify-between rounded-sm bg-card border border-border p-2 text-xs">
+                          <span>
+                            {itinerary.carbon.intercity.mode === "flight" ? "✈️" : "🚌"}{" "}
+                            Liên tỉnh ({itinerary.carbon.intercity.label}, khứ hồi{" "}
+                            {itinerary.carbon.intercity.distance_km} km ·{" "}
+                            {itinerary.carbon.intercity.passengers} người)
+                          </span>
+                          <span className="font-semibold shrink-0 ml-2">
+                            {itinerary.carbon.intercity.kg} kg
+                          </span>
+                        </div>
+                      )}
+
+                      {itinerary.carbon.by_day && itinerary.carbon.by_day.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {itinerary.carbon.by_day.map((d) => (
+                            <span
+                              key={d.day}
+                              className="text-[10px] px-1.5 py-0.5 rounded-sm bg-card border border-border text-muted-foreground"
+                            >
+                              Ngày {d.day}: {d.km} km · {d.kg} kg
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {itinerary.carbon.source && (
+                        <p className="mt-2 text-[10px] italic text-muted-foreground/70">
+                          Hệ số phát thải: {itinerary.carbon.source}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Highlights */}
                   {highlights.length > 0 && (

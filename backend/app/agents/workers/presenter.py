@@ -23,7 +23,7 @@ async def presenter_node(state: TravelAgentState) -> dict:
             f"- {w.get('title')} ({w.get('time')} {w.get('day')}): {w.get('condition')}" for w in severe
         )
 
-    llm = get_chat_model("strong", streaming=True)
+    llm = get_chat_model("presenter", streaming=True)
     full = ""
     async for chunk in llm.astream(
         [SystemMessage(content=PRESENTER_PROMPT), HumanMessage(content=ctx)]

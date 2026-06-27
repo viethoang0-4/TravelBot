@@ -53,11 +53,32 @@ export interface Activity {
   is_locked?: boolean;
 }
 
+/** Một chặng di chuyển THẬT giữa 2 hoạt động (Goong Directions). */
+export interface RouteLeg {
+  from_id: string;
+  to_id: string;
+  distance_m: number;
+  duration_s: number;
+}
+
+/**
+ * Tuyến đường THẬT của một ngày, do grounding node (Goong) gắn vào sau planner.
+ * `seq` = thứ tự id hoạt động tuyến đường này bám theo → FE so với thứ tự hiện tại
+ * để phát hiện người dùng đã kéo-thả đổi chỗ (stale) và fallback vẽ đường thẳng.
+ */
+export interface DayRoute {
+  polyline: string; // encoded polyline (precision 5)
+  seq: string[];
+  legs: RouteLeg[];
+}
+
 export interface DayPlan {
   day: number;
   date: string;
   theme: string;
   activities: Activity[];
+  /** Tuyến đường thật trong ngày (có khi backend bật grounding Goong); không có → vẽ đường thẳng. */
+  route?: DayRoute;
 }
 
 export interface BudgetBreakdown {
@@ -83,6 +104,39 @@ export interface HiddenGem {
   confidence_score: number;
 }
 
+/** Một phương thức di chuyển trong tính carbon (để so sánh ô tô vs xe máy). */
+export interface CarbonMode {
+  label: string;
+  factor: number;
+  local_kg: number;
+}
+
+/** Chặng liên tỉnh (origin↔destination, khứ hồi). */
+export interface CarbonIntercity {
+  mode: string;
+  label: string;
+  factor: number;
+  distance_km: number;
+  passengers: number;
+  kg: number;
+}
+
+/**
+ * Dấu chân carbon của hành trình. Nội vùng tính từ quãng đường THẬT (Goong Directions);
+ * liên tỉnh ước tính khứ hồi origin↔destination. Hệ số: UK DEFRA 2023 / IPCC / ICAO.
+ */
+export interface TripCarbon {
+  vehicle: string;
+  vehicle_label: string;
+  local_km: number;
+  local_kg: number;
+  modes: { car: CarbonMode; motorbike: CarbonMode };
+  by_day: { day: number; km: number; kg: number }[];
+  intercity: CarbonIntercity | null;
+  total_kg: number;
+  source: string;
+}
+
 export interface Itinerary {
   itinerary_id: string;
   title: string;
@@ -93,6 +147,8 @@ export interface Itinerary {
   budget: Budget;
   days: DayPlan[];
   hidden_gems: HiddenGem[];
+  /** Dấu chân carbon (chỉ có khi backend bật grounding Goong). */
+  carbon?: TripCarbon;
   meta: {
     generated_by: string;
     model_used: string;

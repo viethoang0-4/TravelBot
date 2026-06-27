@@ -1,0 +1,42 @@
+name: Deploy backend to Hugging Face Space
+
+# Đẩy thư mục backend/ lên một HF Space (Docker SDK). Space tự build & chạy Dockerfile.
+# Cấu hình trên GitHub repo:
+#   - Secret  HF_TOKEN     : Access Token (write) từ https://huggingface.co/settings/tokens
+#   - Variable HF_SPACE_ID : "<username>/<space>" (vd: vhvhvh/compasso-api)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-hf.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push backend/ to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_ID: ${{ vars.HF_SPACE_ID }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_ID" ]; then
+            echo "::error::Thiếu secret HF_TOKEN hoặc variable HF_SPACE_ID"; exit 1
+          fi
+          HF_USER="${HF_SPACE_ID%%/*}"   # phần trước '/' = chủ Space (để xác thực)
+          cd backend
+          rm -f .env .env.* 2>/dev/null || true   # phòng hờ: không bao giờ đẩy secrets
+          # HF Space cần README.md (frontmatter sdk:docker). File này bị .gitignore ở repo
+          # gốc (không đẩy .md lên GitHub) nên sinh tại đây để HF build đúng.
+          printf '%s\n' '---' 'title: Compasso API' 'emoji: "🧭"' 'colorFrom: orange' 'colorTo: green' 'sdk: docker' 'app_port: 7860' 'pinned: false' '---' '' 'Compasso backend (FastAPI + LangGraph) — auto-deploy from GitHub.' > README.md
+          rm -rf .git
+          git init -q -b main
+          git config user.email "ci@github.actions"
+          git config user.name "GitHub Actions"
+          git add .
+          git commit -q -m "Deploy ${GITHUB_SHA::7} from GitHub"
+          git push -f "https://${HF_USER}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_ID}" main
+          echo "Deployed backend → https://huggingface.co/spaces/${HF_SPACE_ID}"

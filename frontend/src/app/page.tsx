@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, Compass, Map, Sparkles, Navigation } from "lucide-react";
+import {
+  ArrowRight,
+  Compass,
+  Map,
+  Sparkles,
+  Navigation,
+  Wallet,
+  CloudRain,
+} from "lucide-react";
+import { BentoGrid, BentoCard } from "@/components/ui/bento-grid";
 
 export default function LandingPage() {
   return (
@@ -11,7 +20,7 @@ export default function LandingPage() {
             <Compass className="w-5 h-5 text-white" />
           </div>
           <span className="font-semibold text-lg tracking-tight text-foreground">
-            Travel<span className="text-terracotta">Bot</span>
+            Compa<span className="text-terracotta">sso</span>
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-[15px] font-medium text-muted-foreground">
@@ -73,50 +82,46 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-background rounded-lg p-8 border border-border shadow-sm transition-all hover:shadow-wf hover:-translate-y-1">
-                <div className="w-12 h-12 bg-acc-shop/10 rounded-md flex items-center justify-center mb-6">
-                  <Navigation className="w-6 h-6 text-acc-shop" />
-                </div>
-                <h3 className="text-[24px] font-semibold text-foreground mb-3 leading-[1.3]">
-                  Lịch Trình Động
-                </h3>
-                <p className="text-[16px] text-muted-foreground leading-[1.6]">
-                  Tuỳ biến từng địa điểm, kéo thả linh hoạt và chỉnh sửa thời gian chuyến hành trình theo đúng ý thích của bạn.
-                </p>
-              </div>
-
-              <div className="bg-background rounded-lg p-8 border border-border shadow-sm transition-all hover:shadow-wf hover:-translate-y-1">
-                <div className="w-12 h-12 bg-sage/10 rounded-md flex items-center justify-center mb-6">
-                  <Map className="w-6 h-6 text-sage" />
-                </div>
-                <h3 className="text-[24px] font-semibold text-foreground mb-3 leading-[1.3]">
-                  Bản Đồ Tích Hợp
-                </h3>
-                <p className="text-[16px] text-muted-foreground leading-[1.6]">
-                  Theo dõi quãng đường và vị trí cụ thể của từng hoạt động trên bản đồ trực quan được cập nhật ngay lập tức.
-                </p>
-              </div>
-
-              <div className="bg-background rounded-lg p-8 border border-border shadow-sm transition-all hover:shadow-wf hover:-translate-y-1">
-                <div className="w-12 h-12 bg-terracotta/10 rounded-md flex items-center justify-center mb-6">
-                  <Sparkles className="w-6 h-6 text-terracotta" />
-                </div>
-                <h3 className="text-[24px] font-semibold text-foreground mb-3 leading-[1.3]">
-                  Gợi Ý Địa Điểm Ẩn
-                </h3>
-                <p className="text-[16px] text-muted-foreground leading-[1.6]">
-                  Khám phá những trải nghiệm độc đáo, ít người biết đến được AI phân tích riêng biệt theo sở thích của bạn.
-                </p>
-              </div>
-            </div>
+            <BentoGrid>
+              <BentoCard
+                className="md:col-span-2"
+                icon={Navigation}
+                accent="shop"
+                title="Lịch Trình Động"
+                description="Tuỳ biến từng địa điểm, kéo thả linh hoạt và chỉnh sửa thời gian chuyến hành trình theo đúng ý thích của bạn. Các sự kiện cố định như chuyến bay, nhận phòng được khoá để tránh xáo trộn."
+              />
+              <BentoCard
+                icon={Map}
+                accent="sage"
+                title="Bản Đồ Việt Nam"
+                description="Bản đồ Goong chuẩn chủ quyền, hiển thị vị trí từng hoạt động và cập nhật tức thì."
+              />
+              <BentoCard
+                icon={Sparkles}
+                accent="terracotta"
+                title="Gợi Ý Địa Điểm Ẩn"
+                description="Khám phá những trải nghiệm độc đáo, ít người biết được AI phân tích theo sở thích của bạn."
+              />
+              <BentoCard
+                icon={Wallet}
+                accent="fun"
+                title="Dự Toán Ngân Sách"
+                description="Tự động ước tính chi phí ăn ở, di chuyển, vui chơi theo từng hạng mục."
+              />
+              <BentoCard
+                icon={CloudRain}
+                accent="transport"
+                title="Cảnh Báo Thời Tiết"
+                description="Theo dõi dự báo và nhắc bạn khi hoạt động ngoài trời gặp thời tiết bất lợi."
+              />
+            </BentoGrid>
           </div>
         </section>
       </main>
 
       {/* Footer */}
       <footer className="py-8 text-center text-muted-foreground text-sm border-t border-border">
-        <p className="font-medium">© 2026 TravelBot. AI-powered Travel Assistant.</p>
+        <p className="font-medium">© 2026 Compasso. AI-powered Travel Assistant.</p>
       </footer>
     </div>
   );

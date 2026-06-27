@@ -17,9 +17,18 @@ async def supervisor_node(state: TravelAgentState) -> dict:
     messages = state.get("messages", [])
     today = datetime.now().strftime("%Y-%m-%d")
     sys = SUPERVISOR_PROMPT + f"\n\nHôm nay là {today}. Dùng để quy đổi ngày tương đối (vd 'cuối tuần này') sang YYYY-MM-DD."
+
+    current = state.get("current_itinerary")
+    if current:
+        sys += (
+            f"\n\nNgười dùng ĐANG XEM lịch trình '{current.get('title', '')}' "
+            f"({current.get('destination', '')}). Nếu họ muốn sửa/thêm/bớt/dời/đổi gì trong lịch trình "
+            f"này thì intent = modify_plan (KHÔNG phải plan_trip). Chỉ chọn plan_trip khi họ rõ ràng muốn "
+            f"một chuyến đi MỚI khác."
+        )
     lc = [SystemMessage(content=sys)] + build_history(messages)
 
-    decision = await structured_invoke("fast", SupervisorDecision, lc)
+    decision = await structured_invoke("supervisor", SupervisorDecision, lc)
     if decision is None:
         print("[SUPERVISOR] no decision, defaulting to general_chat")
         return {"intent": "general_chat", "slots": {}}

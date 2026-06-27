@@ -46,6 +46,8 @@ async def chat(
     initial_state: TravelAgentState = {
         "messages": [m.model_dump() for m in request.messages],
         "image": request.image,
+        "current_itinerary": request.current_itinerary,
+        "user_preferences": current_user.get("preferences") or {},  # cá nhân hóa: nạp hồ sơ sở thích
         "revision_count": 0,
     }
 
@@ -54,16 +56,18 @@ async def chat(
         "supervisor": ("thinking", "Đang phân tích yêu cầu..."),
         "clarify": ("thinking", "Đang xác định thông tin cần thiết..."),
         "research": ("searching", "Đang tìm thông tin mới nhất..."),
+        "social": ("searching", "Đang tìm review & vlog thực tế..."),
         "planner": ("thinking", "Đang lập lịch trình..."),
+        "grounding": ("searching", "Đang xác thực địa điểm & tuyến đường thật (Goong)..."),
         "weather": ("searching", "Đang kiểm tra thời tiết..."),
         "critic": ("thinking", "Đang rà soát tính khả thi..."),
         "presenter": ("thinking", "Đang hoàn thiện..."),
-        "chat": ("thinking", "TravelBot đang suy nghĩ..."),
+        "chat": ("thinking", "Compasso đang suy nghĩ..."),
     }
 
     async def generate():
         try:
-            yield _sse("thinking", "TravelBot đang xử lý...")
+            yield _sse("thinking", "Compasso đang xử lý...")
 
             captured_itinerary = None
             captured_questions = None
@@ -77,12 +81,16 @@ async def chat(
                     yield _sse(etype, msg)
 
                 elif event_name == "on_chat_model_stream":
-                    # Only presenter/chat use streaming models → these are user-facing tokens
-                    chunk = event.get("data", {}).get("chunk")
-                    if chunk is not None:
-                        token = chunk.content if hasattr(chunk, "content") else ""
-                        if token:
-                            yield _sse("text", token)
+                    # CHỈ forward token của presenter/chat (node sinh văn xuôi cho người dùng).
+                    # Các node khác (planner/critic/...) cũng phát on_chat_model_stream khi dùng
+                    # ChatOpenAI/ckey (khác Gemini) → không được để JSON thô rò ra UI.
+                    src_node = (event.get("metadata") or {}).get("langgraph_node", "")
+                    if src_node in ("presenter", "chat"):
+                        chunk = event.get("data", {}).get("chunk")
+                        if chunk is not None:
+                            token = chunk.content if hasattr(chunk, "content") else ""
+                            if token:
+                                yield _sse("text", token)
 
                 elif event_name == "on_chain_end":
                     out = event.get("data", {}).get("output")

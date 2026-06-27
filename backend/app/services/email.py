@@ -9,6 +9,7 @@ _WEBFLOW_BLUE = "#146ef5"
 
 
 def _build_html(itinerary_title: str, alerts: list[dict]) -> str:
+    fe_url = get_settings().frontend_url.rstrip("/")
     rows = ""
     for a in alerts:
         icon = "⚠️" if a["severity"] == "warning" else "🚨"
@@ -32,7 +33,7 @@ def _build_html(itinerary_title: str, alerts: list[dict]) -> str:
           <!-- Header -->
           <tr>
             <td style="background:{_WEBFLOW_BLUE};padding:20px 24px;">
-              <span style="color:#fff;font-size:20px;font-weight:700;">🧭 TravelBot</span>
+              <span style="color:#fff;font-size:20px;font-weight:700;">🧭 Compasso</span>
               <p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:13px;">
                 Cảnh báo thời tiết cho lịch trình của bạn
               </p>
@@ -62,7 +63,7 @@ def _build_html(itinerary_title: str, alerts: list[dict]) -> str:
           <tr>
             <td style="background:#f9f9f9;padding:14px 24px;text-align:center;">
               <span style="font-size:12px;color:#999;">
-                Mở <a href="http://localhost:3000/chat" style="color:{_WEBFLOW_BLUE};">TravelBot</a>
+                Mở <a href="{fe_url}/chat" style="color:{_WEBFLOW_BLUE};">Compasso</a>
                 để xem chi tiết và cập nhật lịch trình.
               </span>
             </td>
@@ -89,7 +90,7 @@ async def send_weather_alert(user: dict, itinerary: dict, alerts: list[dict]) ->
     itinerary_title = itinerary.get("title", "Lịch trình")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"[TravelBot] Cảnh báo thời tiết: {itinerary_title}"
+    msg["Subject"] = f"[Compasso] Cảnh báo thời tiết: {itinerary_title}"
     msg["From"] = f"{settings.email_from_name} <{settings.gmail_user}>"
     msg["To"] = to_email
 

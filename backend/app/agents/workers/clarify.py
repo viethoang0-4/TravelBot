@@ -39,7 +39,7 @@ async def clarify_node(state: TravelAgentState) -> dict:
     )
 
     result = await structured_invoke(
-        "fast", ClarifyQuestions,
+        "clarify", ClarifyQuestions,
         [SystemMessage(content=CLARIFY_PROMPT), HumanMessage(content=ctx)],
     )
 

@@ -3,7 +3,7 @@
 import { useTravelStore } from "@/store/travel-store";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle2, FileEdit, MapPin, X } from "lucide-react";
+import { Calendar, CheckCircle2, FileEdit, MapPin, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function formatRelativeDate(iso: string): string {
@@ -25,6 +25,7 @@ export default function DraftsBar() {
   const activeDraftId = useTravelStore((s) => s.activeDraftId);
   const switchDraft = useTravelStore((s) => s.switchDraft);
   const deleteDraft = useTravelStore((s) => s.deleteDraft);
+  const newConversation = useTravelStore((s) => s.newConversation);
 
   if (drafts.length === 0) return null;
 
@@ -39,6 +40,20 @@ export default function DraftsBar() {
         <span className="text-[11px] font-semibold uppercase tracking-wider shrink-0 mr-1 text-muted-foreground">
           Lịch trình ({drafts.length})
         </span>
+
+        <button
+          onClick={newConversation}
+          title="Bắt đầu cuộc trò chuyện mới"
+          className={cn(
+            "shrink-0 flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs font-medium border transition-all",
+            activeDraftId === null
+              ? "bg-terracotta text-white border-terracotta shadow-sm"
+              : "bg-background/60 border-border text-muted-foreground hover:border-terracotta/50 hover:text-terracotta"
+          )}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Mới</span>
+        </button>
 
         <AnimatePresence initial={false}>
           {sorted.map((draft) => {

@@ -35,6 +35,13 @@ interface TravelStore {
   pendingClarify: ClarifyPayload | null;
 
   /**
+   * Lịch sử trò chuyện của TỪNG lịch trình (theo draft_id) — bản lưu của các draft
+   * KHÔNG đang active. Conversation của draft đang active là `messages` (live).
+   * Hydrate từ backend lúc đăng nhập, được lưu ngược lên backend sau mỗi lượt chat.
+   */
+  messagesByDraft: Record<string, ChatMessage[]>;
+
+  /**
    * Khi true → ItineraryPanel sẽ render Skeleton thay vì timeline thật.
    * Set true khi user gửi yêu cầu lập kế hoạch, set false khi nhận xong.
    */
@@ -67,6 +74,10 @@ interface TravelStore {
   setStreamingStatus: (v: string) => void;
   setPendingClarify: (v: ClarifyPayload | null) => void;
   clearMessages: () => void;
+  /** Bắt đầu cuộc trò chuyện mới: bỏ chọn lịch trình, dọn khung chat (KHÔNG xoá lịch sử đã lưu) */
+  newConversation: () => void;
+  /** Lưu cuộc trò chuyện của lịch trình đang active lên backend (gọi sau mỗi lượt chat) */
+  persistActiveConversation: () => void;
 
   // ── Planning skeleton ─────────────────────────────────
   startPlanning: () => void;
@@ -79,8 +90,11 @@ interface TravelStore {
    * Tự động set draft này thành active.
    */
   addDraft: (itinerary: Itinerary) => void;
-  /** Thay toàn bộ danh sách drafts (vd: hydrate từ backend khi đăng nhập) */
-  setDrafts: (drafts: ItineraryDraft[]) => void;
+  /** Thay toàn bộ danh sách drafts + lịch sử chat (vd: hydrate từ backend khi đăng nhập) */
+  setDrafts: (
+    drafts: ItineraryDraft[],
+    messagesByDraft?: Record<string, ChatMessage[]>
+  ) => void;
   /** Ghi đè itinerary của một draft (vd: sau khi user kéo thả) */
   updateDraftItinerary: (draftId: string, itinerary: Itinerary) => void;
   /** Chuyển draft đang active — KHÔNG xoá lịch sử chat */
@@ -109,17 +123,68 @@ interface TravelStore {
 const nowIso = () => new Date().toISOString();
 
 // ── Backend sync (fire-and-forget; the store updates optimistically) ──────
-// The "status" (draft/confirmed) is stored alongside the itinerary on the
-// backend so it survives logout/login.
-async function persistDraft(draft: ItineraryDraft): Promise<void> {
+// The "status" (draft/confirmed) AND the conversation history are stored
+// alongside the itinerary on the backend so they survive logout/login.
+
+/** Hình thái message tối giản để lưu (bỏ ảnh base64 + itinerary lồng nhau cho nhẹ) */
+interface StoredMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string; // ISO
+}
+
+function serializeMessages(messages: ChatMessage[]): StoredMessage[] {
+  return messages
+    .filter((m) => (m.content ?? "").trim()) // bỏ message rỗng (placeholder assistant)
+    .map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: (m.timestamp instanceof Date
+        ? m.timestamp
+        : new Date(m.timestamp)
+      ).toISOString(),
+    }));
+}
+
+/** Khôi phục messages từ dạng đã lưu (timestamp string → Date) */
+export function deserializeMessages(raw: unknown): ChatMessage[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((m) => m && typeof m.content === "string")
+    .map((m) => ({
+      id: m.id ?? nanoid(),
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content,
+      timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+    }));
+}
+
+async function persistDraft(
+  draft: ItineraryDraft,
+  messages: ChatMessage[]
+): Promise<void> {
   try {
     await apiClient.post("/api/v1/itineraries", {
       ...draft.itinerary,
       status: draft.status,
+      messages: serializeMessages(messages),
     });
   } catch (e) {
     console.error("[drafts] persist failed", e);
   }
+}
+
+/** Lưu 1 draft kèm đúng conversation của nó (active → messages live, còn lại → messagesByDraft) */
+function persistDraftFromState(state: TravelStore, draftId: string): void {
+  const draft = state.drafts.find((d) => d.draft_id === draftId);
+  if (!draft) return;
+  const msgs =
+    state.activeDraftId === draftId
+      ? state.messages
+      : state.messagesByDraft[draftId] ?? [];
+  persistDraft(draft, msgs);
 }
 
 async function removeDraftFromBackend(itineraryId?: string): Promise<void> {
@@ -145,6 +210,7 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
   streamingText: "",
   streamingStatus: "",
   pendingClarify: null,
+  messagesByDraft: {},
   isPlanning: false,
   planningStep: "intent",
 
@@ -181,14 +247,44 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
   setStreamingStatus: (streamingStatus) => set({ streamingStatus }),
   setPendingClarify: (pendingClarify) => set({ pendingClarify }),
 
-  clearMessages: () =>
-    set({
-      messages: [],
-      pendingClarify: null,
-      // KHÔNG xoá drafts — user có thể muốn giữ lịch trình đã tạo
-      selectedActivityId: null,
-      hoveredActivityId: null,
+  // "Xóa hội thoại": dọn chat của cuộc trò chuyện đang xem. Nếu đang gắn với 1 lịch
+  // trình thì xoá luôn lịch sử đã lưu của lịch trình đó (cả trên backend). KHÔNG xoá drafts.
+  clearMessages: () => {
+    set((s) => {
+      const byDraft = { ...s.messagesByDraft };
+      if (s.activeDraftId) byDraft[s.activeDraftId] = [];
+      return {
+        messages: [],
+        messagesByDraft: byDraft,
+        pendingClarify: null,
+        selectedActivityId: null,
+        hoveredActivityId: null,
+      };
+    });
+    const st = get();
+    if (st.activeDraftId) persistDraftFromState(st, st.activeDraftId);
+  },
+
+  // Bắt đầu cuộc trò chuyện mới: cất conversation hiện tại, bỏ chọn lịch trình, dọn khung chat.
+  // KHÔNG xoá lịch sử đã lưu (vẫn có thể bấm lại lịch trình để xem).
+  newConversation: () =>
+    set((s) => {
+      const byDraft = { ...s.messagesByDraft };
+      if (s.activeDraftId) byDraft[s.activeDraftId] = s.messages;
+      return {
+        activeDraftId: null,
+        messages: [],
+        messagesByDraft: byDraft,
+        pendingClarify: null,
+        selectedActivityId: null,
+        hoveredActivityId: null,
+      };
     }),
+
+  persistActiveConversation: () => {
+    const st = get();
+    if (st.activeDraftId) persistDraftFromState(st, st.activeDraftId);
+  },
 
   // Planning skeleton
   startPlanning: () => set({ isPlanning: true, planningStep: "intent" }),
@@ -198,27 +294,34 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
   // Drafts
   addDraft: (itinerary) =>
     set((s) => {
+      // draft_id = itinerary_id để đồng nhất với backend + hydrate (lưu/khôi phục chat theo id này)
+      const draftId = itinerary.itinerary_id;
       const draft: ItineraryDraft = {
-        draft_id: nanoid(10),
+        draft_id: draftId,
         itinerary,
         status: "draft",
         created_at: nowIso(),
         updated_at: nowIso(),
       };
+      // Cuộc trò chuyện hiện tại (`messages`) trở thành lịch sử của lịch trình vừa tạo.
       return {
-        drafts: [...s.drafts, draft],
-        activeDraftId: draft.draft_id,
+        drafts: [...s.drafts.filter((d) => d.draft_id !== draftId), draft],
+        activeDraftId: draftId,
         activeTab: "timeline",
       };
     }),
 
-  setDrafts: (drafts) =>
-    set((s) => ({
-      drafts,
-      activeDraftId: drafts.some((d) => d.draft_id === s.activeDraftId)
-        ? s.activeDraftId
-        : drafts[0]?.draft_id ?? null,
-    })),
+  setDrafts: (drafts, messagesByDraft = {}) =>
+    set((s) => {
+      // Mới vào KHÔNG auto-focus: chỉ giữ active nếu nó vẫn còn, ngược lại để null (chưa chọn gì).
+      const keepActive = drafts.some((d) => d.draft_id === s.activeDraftId);
+      return {
+        drafts,
+        messagesByDraft,
+        activeDraftId: keepActive ? s.activeDraftId : null,
+        messages: keepActive ? s.messages : [],
+      };
+    }),
 
   updateDraftItinerary: (draftId, itinerary) => {
     set((s) => ({
@@ -228,18 +331,27 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
           : d
       ),
     }));
-    const draft = get().drafts.find((d) => d.draft_id === draftId);
-    if (draft) persistDraft(draft); // save reordered/edited itinerary
+    persistDraftFromState(get(), draftId); // save reordered/edited itinerary (+ chat)
   },
 
   switchDraft: (draftId) => {
-    const exists = get().drafts.some((d) => d.draft_id === draftId);
-    if (!exists) return;
-    set({
-      activeDraftId: draftId,
-      selectedActivityId: null,
-      hoveredActivityId: null,
-      activeTab: "timeline",
+    const st = get();
+    if (draftId === st.activeDraftId) return;
+    if (!st.drafts.some((d) => d.draft_id === draftId)) return;
+    set((s) => {
+      const byDraft = { ...s.messagesByDraft };
+      // cất conversation của draft đang xem trước khi chuyển
+      if (s.activeDraftId) byDraft[s.activeDraftId] = s.messages;
+      const next = byDraft[draftId] ?? [];
+      return {
+        activeDraftId: draftId,
+        messages: next, // hiển thị lại lịch sử trò chuyện của lịch trình được chọn
+        messagesByDraft: byDraft,
+        pendingClarify: null,
+        selectedActivityId: null,
+        hoveredActivityId: null,
+        activeTab: "timeline",
+      };
     });
   },
 
@@ -247,11 +359,16 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
     const draft = get().drafts.find((d) => d.draft_id === draftId);
     set((s) => {
       const newDrafts = s.drafts.filter((d) => d.draft_id !== draftId);
-      const newActive =
-        s.activeDraftId === draftId
-          ? newDrafts[newDrafts.length - 1]?.draft_id ?? null
-          : s.activeDraftId;
-      return { drafts: newDrafts, activeDraftId: newActive };
+      const byDraft = { ...s.messagesByDraft };
+      delete byDraft[draftId];
+      // Xoá lịch trình đang xem → về trạng thái chưa chọn (không tự nhảy sang cái khác)
+      const wasActive = s.activeDraftId === draftId;
+      return {
+        drafts: newDrafts,
+        messagesByDraft: byDraft,
+        activeDraftId: wasActive ? null : s.activeDraftId,
+        messages: wasActive ? [] : s.messages,
+      };
     });
     removeDraftFromBackend(draft?.itinerary.itinerary_id);
   },
@@ -266,7 +383,7 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
     }));
     const draft = get().drafts.find((d) => d.draft_id === draftId);
     if (!draft) return;
-    persistDraft(draft);
+    persistDraftFromState(get(), draftId);
     emitToast({
       notification_id: `confirm-${Date.now()}`,
       user_id: "",
@@ -290,7 +407,7 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
     }));
     const draft = get().drafts.find((d) => d.draft_id === draftId);
     if (!draft) return;
-    persistDraft(draft);
+    persistDraftFromState(get(), draftId);
     emitToast({
       notification_id: `unconfirm-${Date.now()}`,
       user_id: "",

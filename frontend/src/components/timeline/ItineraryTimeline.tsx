@@ -87,7 +87,7 @@ export default function ItineraryTimeline() {
         <div>
           <p className="font-medium text-foreground">Chưa có lịch trình</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Hỏi TravelBot để tạo lịch trình du lịch của bạn
+            Hỏi Compasso để tạo lịch trình du lịch của bạn
           </p>
         </div>
         <Button

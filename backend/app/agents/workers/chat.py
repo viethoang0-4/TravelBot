@@ -28,7 +28,7 @@ async def chat_node(state: TravelAgentState) -> dict:
     else:
         lc.append(HumanMessage(content=last))
 
-    llm = get_chat_model("fast", streaming=True)
+    llm = get_chat_model("chat", streaming=True)
     full = ""
     async for chunk in llm.astream(lc):
         if chunk.content:

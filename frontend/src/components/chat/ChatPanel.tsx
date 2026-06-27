@@ -7,6 +7,7 @@ import ChatInput from "./ChatInput";
 import StreamingMessage from "./StreamingMessage";
 import ClarifyCard from "./ClarifyCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TypewriterText } from "@/components/ui/typewriter-text";
 import { Compass } from "lucide-react";
 import {
   ChatMessage as ChatMessageType,
@@ -15,6 +16,9 @@ import {
   StreamEvent,
 } from "@/types/travel";
 import { nanoid } from "@/lib/utils";
+import { getSession } from "next-auth/react";
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 /** Heuristic: phát hiện ý định lập kế hoạch để bật skeleton */
 function detectPlanIntent(text: string): boolean {
@@ -34,12 +38,14 @@ export default function ChatPanel() {
     addMessage,
     updateLastAssistantMessage,
     addDraft,
+    updateDraftItinerary,
     startPlanning,
     stopPlanning,
     setIsStreaming,
     setStreamingText,
     setStreamingStatus,
     setPendingClarify,
+    persistActiveConversation,
   } = useTravelStore();
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -76,7 +82,7 @@ export default function ChatPanel() {
 
     setIsStreaming(true);
     setStreamingText("");
-    setStreamingStatus("TravelBot đang suy nghĩ...");
+    setStreamingStatus("Compasso đang suy nghĩ...");
     if (willPlan) startPlanning();
 
     const assistantMsg: ChatMessageType = {
@@ -89,11 +95,27 @@ export default function ChatPanel() {
 
     abortRef.current = new AbortController();
 
+    // Lịch trình đang xem (nếu có) → backend có thể SỬA tại chỗ thay vì tạo mới
+    const st = useTravelStore.getState();
+    const currentItinerary =
+      st.drafts.find((d) => d.draft_id === st.activeDraftId)?.itinerary ?? null;
+
     try {
-      const res = await fetch("/api/chat", {
+      // Gọi THẲNG FastAPI (bỏ proxy /api/chat của Vercel → tránh trần thời lượng hàm
+      // serverless ~60s cho lần sinh lịch trình dài). JWT lấy từ session NextAuth.
+      const session = await getSession();
+      const token = session?.backendToken;
+      const res = await fetch(`${BACKEND}/api/v1/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: allMessages, image }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          messages: allMessages,
+          image,
+          current_itinerary: currentItinerary,
+        }),
         signal: abortRef.current.signal,
       });
 
@@ -154,7 +176,15 @@ export default function ChatPanel() {
       }
 
       if (itinerary) {
-        addDraft(itinerary);
+        // Sửa tại chỗ nếu id trùng lịch trình đã có; ngược lại tạo draft mới
+        const exists = useTravelStore
+          .getState()
+          .drafts.some((d) => d.draft_id === itinerary.itinerary_id);
+        if (exists) {
+          updateDraftItinerary(itinerary.itinerary_id, itinerary);
+        } else {
+          addDraft(itinerary);
+        }
         const updatedMsg: ChatMessageType = {
           id: nanoid(),
           role: "assistant",
@@ -180,6 +210,8 @@ export default function ChatPanel() {
       setStreamingText("");
       setStreamingStatus("");
       if (willPlan) stopPlanning();
+      // Lưu lịch sử trò chuyện của lịch trình đang active lên backend (giữ context qua reload)
+      persistActiveConversation();
     }
   };
 
@@ -195,7 +227,12 @@ export default function ChatPanel() {
                 <Compass className="w-8 h-8 text-terracotta" />
               </div>
               <div>
-                <h2 className="font-semibold text-lg">Xin chào! Tôi là TravelBot</h2>
+                <h2 className="font-semibold text-lg">
+                  <TypewriterText
+                    text="Xin chào! Tôi là Compasso"
+                    cursorClassName="bg-terracotta"
+                  />
+                </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Hãy cho tôi biết bạn muốn đi đâu, khi nào, và ngân sách của bạn. Tôi sẽ lập kế hoạch chi tiết cho bạn!
                 </p>

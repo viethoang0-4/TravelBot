@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { Activity } from "@/types/travel";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTravelStore } from "@/store/travel-store";
 import { isActivityLocked } from "@/lib/activity-lock";
 import { useResolvedImage } from "@/lib/use-pexels-image";
@@ -207,16 +212,34 @@ export default function ActivityCard({
         {!sortable && (
           <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
             {hasWeatherAlert && (
-              <Badge className="bg-[#ff6b00] text-white border-0 text-[10px] px-1.5 py-0 rounded-sm">
-                <CloudLightning className="w-2.5 h-2.5 mr-0.5" />
-                Thời tiết
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge className="bg-[#ff6b00] text-white border-0 text-[10px] px-1.5 py-0 rounded-sm cursor-help">
+                      <CloudLightning className="w-2.5 h-2.5 mr-0.5" />
+                      Thời tiết
+                    </Badge>
+                  }
+                />
+                <TooltipContent side="left">
+                  Hoạt động này có thể bị ảnh hưởng bởi thời tiết — kiểm tra dự báo trước khi đi
+                </TooltipContent>
+              </Tooltip>
             )}
             {activity.is_hidden_gem && (
-              <Badge className="bg-acc-food text-white border-0 text-[10px] px-1.5 py-0 rounded-sm">
-                <Gem className="w-2.5 h-2.5 mr-0.5" />
-                Điểm ẩn
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge className="bg-acc-food text-white border-0 text-[10px] px-1.5 py-0 rounded-sm cursor-help">
+                      <Gem className="w-2.5 h-2.5 mr-0.5" />
+                      Điểm ẩn
+                    </Badge>
+                  }
+                />
+                <TooltipContent side="left">
+                  Địa điểm ẩn ít người biết — gợi ý riêng từ AI
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}
@@ -224,12 +247,18 @@ export default function ActivityCard({
         {/* Drag handle or Lock icon (top-right when sortable) */}
         {sortable && (
           isLocked ? (
-            <div
-              className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white/70 flex items-center justify-center"
-              title="Sự kiện cố định (di chuyển/lưu trú) — không thể đổi chỗ"
-            >
-              <Lock className="w-3.5 h-3.5" />
-            </div>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <div className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white/70 flex items-center justify-center cursor-not-allowed">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                }
+              />
+              <TooltipContent side="left">
+                Sự kiện cố định (di chuyển/lưu trú) — không thể đổi chỗ
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <>
               {activity.is_hidden_gem && (
@@ -238,14 +267,23 @@ export default function ActivityCard({
                   Điểm ẩn
                 </Badge>
               )}
-              <button
-                {...sortableProps.attributes}
-                {...sortableProps.listeners}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <GripVertical className="w-3.5 h-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <button
+                      {...sortableProps.attributes}
+                      {...sortableProps.listeners}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </button>
+                  }
+                />
+                <TooltipContent side="left">
+                  Kéo để đổi thứ tự hoạt động
+                </TooltipContent>
+              </Tooltip>
             </>
           )
         )}

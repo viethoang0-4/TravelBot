@@ -21,7 +21,7 @@ export default function LoginPage() {
             <Compass className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            Travel<span className="text-[#146ef5]">Bot</span>
+            Compa<span className="text-[#146ef5]">sso</span>
           </h1>
           <p className="text-sm text-foreground/60 mt-1.5">Trợ lý du lịch AI cá nhân của bạn</p>
         </div>
@@ -50,7 +50,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-foreground/40 mt-6">
-          Bằng cách đăng nhập, bạn đồng ý với Điều khoản dịch vụ của TravelBot.
+          Bằng cách đăng nhập, bạn đồng ý với Điều khoản dịch vụ của Compasso.
         </p>
       </div>
     </div>

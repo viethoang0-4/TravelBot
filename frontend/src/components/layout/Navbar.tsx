@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Compass, Moon, Sun, Trash2, LogOut, ChevronDown } from "lucide-react";
+import { Compass, Moon, Sun, Trash2, LogOut, ChevronDown, Search, Heart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTravelStore } from "@/store/travel-store";
+import PreferencesDialog from "@/components/settings/PreferencesDialog";
 import {
   Tooltip,
   TooltipContent,
@@ -41,6 +42,7 @@ function NavIconButton({
 function UserMenu() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,6 +88,16 @@ function UserMenu() {
             <p className="text-[11px] text-foreground/50 truncate">{email}</p>
           </div>
           <button
+            onClick={() => {
+              setOpen(false);
+              setPrefsOpen(true);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+          >
+            <Heart className="w-3.5 h-3.5 text-foreground/50" />
+            Sở thích du lịch
+          </button>
+          <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
           >
@@ -94,6 +106,8 @@ function UserMenu() {
           </button>
         </div>
       )}
+
+      <PreferencesDialog open={prefsOpen} onClose={() => setPrefsOpen(false)} />
     </div>
   );
 }
@@ -130,13 +144,26 @@ export default function Navbar() {
             <Compass className="w-5 h-5 text-white" />
           </div>
           <span className="font-semibold text-base tracking-tight text-foreground">
-            Travel<span className="text-terracotta">Bot</span>
+            Compa<span className="text-terracotta">sso</span>
           </span>
         </Link>
 
         <div className="flex-1" />
 
         <div className="flex items-center gap-1">
+          <button
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("travelbot:open-command-palette"))
+            }
+            className="hidden sm:flex items-center gap-2 h-8 pl-2.5 pr-2 rounded-md border border-border bg-muted/40 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>Tìm nhanh</span>
+            <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[10px] font-medium">
+              Ctrl K
+            </kbd>
+          </button>
+
           <Tooltip>
             <NavIconButton onClick={clearMessages} className="hover:text-destructive">
               <Trash2 className="w-4 h-4" />

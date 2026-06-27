@@ -36,6 +36,11 @@ def _signals(draft: dict, weather_summary: list[dict] | None) -> dict:
 
     for day in draft.get("days", []):
         acts = day.get("activities", [])
+        # Chặng đường THẬT từ Goong (grounding node) — ưu tiên dùng thay haversine.
+        real_legs = {
+            (leg.get("from_id"), leg.get("to_id")): leg
+            for leg in ((day.get("route") or {}).get("legs") or [])
+        }
         for i in range(len(acts) - 1):
             a, b = acts[i], acts[i + 1]
             la, lo = a.get("location", {}).get("lat"), a.get("location", {}).get("lng")
@@ -46,11 +51,18 @@ def _signals(draft: dict, weather_summary: list[dict] | None) -> dict:
                 gap = _minutes(b.get("time", "00:00")) - _minutes(a.get("time", "00:00")) - a.get("duration_minutes", 0)
             except (ValueError, IndexError):
                 continue
-            dist = _haversine_km(la, lo, lb, lob)
-            travel_min = dist / _AVG_CITY_SPEED_KMH * 60
+            leg = real_legs.get((a.get("id"), b.get("id")))
+            if leg:  # khoảng cách & thời gian di chuyển THẬT (Goong Directions)
+                dist = leg.get("distance_m", 0) / 1000
+                travel_min = leg.get("duration_s", 0) / 60
+                src = "đường thật"
+            else:    # fallback: đường chim bay × tốc độ đô thị ước lượng
+                dist = _haversine_km(la, lo, lb, lob)
+                travel_min = dist / _AVG_CITY_SPEED_KMH * 60
+                src = "ước lượng"
             if travel_min > max(gap, 0) + 15:  # no buffer to get there
                 signals["tight_transitions"].append(
-                    f"{a.get('title')} → {b.get('title')}: ~{dist:.1f}km (~{travel_min:.0f}p di chuyển) "
+                    f"{a.get('title')} → {b.get('title')}: ~{dist:.1f}km (~{travel_min:.0f}p di chuyển, {src}) "
                     f"nhưng chỉ có {gap}p trống"
                 )
 
@@ -78,7 +90,7 @@ async def critic_node(state: TravelAgentState) -> dict:
     )
 
     verdict = await structured_invoke(
-        "fast", CriticVerdict,
+        "critic", CriticVerdict,
         [SystemMessage(content=CRITIC_PROMPT), HumanMessage(content=ctx)],
     )
     if verdict is None:

@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TravelBot – Trợ lý du lịch AI",
+  title: "Compasso – Trợ lý du lịch AI",
   description: "Lập kế hoạch du lịch thông minh với AI",
 };
 

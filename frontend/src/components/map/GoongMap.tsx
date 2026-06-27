@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import goongjs from "@goongmaps/goong-js";
 import "@goongmaps/goong-js/dist/goong-js.css";
 import { useTravelStore, useActiveItinerary } from "@/store/travel-store";
-import { ActivityType, Location } from "@/types/travel";
+import { ActivityType, DayRoute, Location } from "@/types/travel";
+import { decodePolyline } from "@/lib/polyline";
 
 // Maptiles Key (khác với API key REST) — lấy free tại https://account.goong.io
 const MAPTILES_KEY = process.env.NEXT_PUBLIC_GOONG_MAPTILES_KEY ?? "";
@@ -88,6 +89,7 @@ export default function GoongMap() {
     let counter = 0;
     return (itinerary?.days ?? []).map((day) => ({
       day: day.day,
+      route: day.route as DayRoute | undefined,
       acts: day.activities
         .filter((a) => isValidCoord(a.location))
         .map((a) => ({ act: a, index: ++counter })),
@@ -108,20 +110,44 @@ export default function GoongMap() {
     mapRef.current = map;
     map.on("load", () => {
       loadedRef.current = true;
+      // Style Goong tham chiếu source-layer "trees" không tồn tại trên vector tiles
+      // → goong-js log "Source layer 'trees' does not exist". Gỡ layer đó cho sạch console.
+      try {
+        const layers: { id: string; "source-layer"?: string }[] =
+          map.getStyle()?.layers ?? [];
+        layers.forEach((l) => {
+          if (l["source-layer"] === "trees" && map.getLayer(l.id)) {
+            map.removeLayer(l.id);
+          }
+        });
+      } catch {
+        /* style chưa sẵn sàng — bỏ qua */
+      }
       if (!map.getSource("routes")) {
         map.addSource("routes", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
         });
+        // Tuyến đường THẬT từ Goong Directions (bám đường phố) → nét liền đậm.
         map.addLayer({
-          id: "routes",
+          id: "routes-real",
           type: "line",
           source: "routes",
+          filter: ["==", "real", true],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#D97757", "line-width": 4, "line-opacity": 0.85 },
+        });
+        // Fallback nối thẳng (chưa có route thật / đã kéo-thả đổi chỗ) → nét đứt mờ.
+        map.addLayer({
+          id: "routes-est",
+          type: "line",
+          source: "routes",
+          filter: ["==", "real", false],
           layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-            "line-color": "#D97757",
+            "line-color": "#9CA3AF",
             "line-width": 3,
-            "line-opacity": 0.55,
+            "line-opacity": 0.5,
             "line-dasharray": [1.5, 1.5],
           },
         });
@@ -181,14 +207,23 @@ export default function GoongMap() {
 
       const features = dayGroups
         .filter((g) => g.acts.length > 1)
-        .map((g) => ({
-          type: "Feature" as const,
-          properties: {},
-          geometry: {
-            type: "LineString" as const,
-            coordinates: g.acts.map((x) => [x.act.location.lng, x.act.location.lat]),
-          },
-        }));
+        .map((g) => {
+          const curIds = g.acts.map((x) => x.act.id);
+          // Dùng TUYẾN ĐƯỜNG THẬT (Goong) nếu có & thứ tự khớp (chưa bị kéo-thả đổi chỗ);
+          // ngược lại fallback nối thẳng theo tọa độ hiện tại.
+          const real =
+            g.route?.polyline &&
+            g.route.seq.length === curIds.length &&
+            g.route.seq.every((id, i) => id === curIds[i]);
+          const coordinates = real
+            ? decodePolyline(g.route!.polyline)
+            : g.acts.map((x) => [x.act.location.lng, x.act.location.lat]);
+          return {
+            type: "Feature" as const,
+            properties: { real: !!real },
+            geometry: { type: "LineString" as const, coordinates },
+          };
+        });
       const src = map.getSource("routes");
       if (src) src.setData({ type: "FeatureCollection", features });
 

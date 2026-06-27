@@ -6,7 +6,7 @@ from typing import Optional, Type, TypeVar
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from pydantic import BaseModel
 
-from ..llm_factory import get_chat_model, Tier
+from ..llm_factory import get_chat_model
 
 _T = TypeVar("_T", bound=BaseModel)
 
@@ -26,27 +26,48 @@ def extract_json(text: str) -> Optional[dict]:
         return None
 
 
-async def structured_invoke(tier: Tier, schema: Type[_T], messages: list) -> Optional[_T]:
+async def structured_invoke(agent: str, schema: Type[_T], messages: list) -> Optional[_T]:
     """
     Call an LLM with structured output, robust across providers.
 
-    Uses native tool-calling when the provider supports it (Anthropic/OpenAI);
-    falls back to parsing a JSON fence when it returns JSON as text (gemini-3-flash).
-    Returns the validated schema instance, or None on failure.
+    `agent` = tên agent gọi (vd "planner") → model lấy theo cấu hình của agent đó.
+
+    1) Native structured output (tool-calling cho Anthropic/OpenAI, JSON cho Gemini).
+    2) Nếu provider/proxy KHÔNG hỗ trợ tool-calling (vài proxy OpenAI-compatible như
+       ckey.vn) hoặc trả JSON lẫn trong text → fallback: gọi thường + ép JSON Schema
+       rồi parse.
+    Trả về instance đã validate, hoặc None.
     """
-    llm = get_chat_model(tier).with_structured_output(schema, include_raw=True)
-    result = await llm.ainvoke(messages)
-    parsed = result.get("parsed") if isinstance(result, dict) else result
-    if parsed is not None:
-        return parsed
-    raw = result.get("raw") if isinstance(result, dict) else None
-    data = extract_json(getattr(raw, "content", "") or "")
-    if data is None:
-        return None
+    llm = get_chat_model(agent)
+
+    # 1) Native structured output
     try:
-        return schema(**data)
-    except Exception:
-        return None
+        structured = llm.with_structured_output(schema, include_raw=True)
+        result = await structured.ainvoke(messages)
+        parsed = result.get("parsed") if isinstance(result, dict) else result
+        if parsed is not None:
+            return parsed
+        raw = result.get("raw") if isinstance(result, dict) else None
+        data = extract_json(getattr(raw, "content", "") or "")
+        if data is not None:
+            return schema(**data)
+    except Exception as e:
+        print(f"[STRUCT] native structured_output lỗi ({type(e).__name__}: {e}); thử fallback JSON")
+
+    # 2) Fallback: gọi thường + ép JSON theo schema
+    try:
+        schema_json = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+        hint = HumanMessage(content=(
+            "Chỉ trả về DUY NHẤT một JSON object hợp lệ (không thêm chữ nào ngoài JSON), "
+            "đúng theo JSON Schema sau:\n" + schema_json
+        ))
+        raw = await llm.ainvoke(list(messages) + [hint])
+        data = extract_json(getattr(raw, "content", "") or "")
+        if data is not None:
+            return schema(**data)
+    except Exception as e:
+        print(f"[STRUCT] fallback JSON lỗi: {e}")
+    return None
 
 
 # ── Slot completeness (for clarify gating) ──────────────────────────────────

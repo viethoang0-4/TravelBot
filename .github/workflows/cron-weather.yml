@@ -1,0 +1,27 @@
+name: Weather check (hourly)
+
+# Thay APScheduler in-process (host free "ngủ" khi rảnh): cron NGOÀI gọi endpoint
+# nội bộ mỗi giờ → chạy job cảnh báo thời tiết + đánh thức service (chống cold start).
+# Cấu hình trên GitHub repo:
+#   - Variable BACKEND_URL          : URL backend (vd: https://vhvhvh-compasso-api.hf.space)
+#   - Secret   INTERNAL_API_SECRET  : trùng với INTERNAL_API_SECRET trên backend
+on:
+  schedule:
+    - cron: "0 * * * *" # mỗi giờ (UTC)
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weather check
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          if [ -z "$BACKEND_URL" ] || [ -z "$INTERNAL_API_SECRET" ]; then
+            echo "::error::Thiếu variable BACKEND_URL hoặc secret INTERNAL_API_SECRET"; exit 1
+          fi
+          curl -fsS -X POST "${BACKEND_URL%/}/api/v1/internal/weather-check" \
+            -H "X-Internal-Secret: ${INTERNAL_API_SECRET}" \
+            -H "Content-Type: application/json"
