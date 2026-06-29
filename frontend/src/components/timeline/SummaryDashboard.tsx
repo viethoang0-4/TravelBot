@@ -95,7 +95,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                 <div className="relative overflow-hidden rounded-t-lg">
                   <div className="absolute inset-0 bg-gradient-to-br from-terracotta/80 to-terracotta-dark/90" />
                   <div className="relative p-6">
-                    <div className="flex items-center gap-2 mb-1 text-white/80 text-xs font-semibold uppercase tracking-wider">
+                    <div className="flex items-center gap-2 mb-1 text-white/80 text-[13px] font-semibold uppercase tracking-wider">
                       <Sparkles className="w-3.5 h-3.5" />
                       Tóm tắt chuyến đi
                     </div>
@@ -104,7 +104,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                       <MapPin className="w-3.5 h-3.5" />
                       <span>{itinerary.destination}</span>
                     </div>
-                    <p className="text-white/70 text-xs mt-1">
+                    <p className="text-white/70 text-[13px] mt-1">
                       {formatDate(itinerary.start_date)} → {formatDate(itinerary.end_date)}
                     </p>
                   </div>
@@ -121,7 +121,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
 
                   {/* Budget breakdown bars */}
                   <div className="rounded-sm border border-border bg-card p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                       Phân bổ ngân sách
                     </p>
                     <div className="space-y-2">
@@ -137,7 +137,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                         };
                         return (
                           <div key={key}>
-                            <div className="flex justify-between text-xs mb-0.5 text-foreground">
+                            <div className="flex justify-between text-[13px] mb-0.5 text-foreground">
                               <span>{labels[key] || key}</span>
                               <span className="text-muted-foreground">
                                 {formatVND(value)} ({pct}%)
@@ -161,7 +161,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                   {itinerary.carbon && (
                     <div className="rounded-sm border border-sage/30 bg-sage/5 p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-sage flex items-center gap-1.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-sage flex items-center gap-1.5">
                           <Leaf className="w-3.5 h-3.5" />
                           Dấu chân carbon
                         </p>
@@ -171,7 +171,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                       </div>
 
                       {itinerary.carbon.modes && (
-                        <div className="space-y-1.5 text-xs">
+                        <div className="space-y-1.5 text-[13px]">
                           <p className="text-muted-foreground">
                             Di chuyển nội vùng (quãng đường thật):{" "}
                             {itinerary.carbon.local_km} km
@@ -194,7 +194,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                       )}
 
                       {itinerary.carbon.intercity && (
-                        <div className="mt-2 flex items-center justify-between rounded-sm bg-card border border-border p-2 text-xs">
+                        <div className="mt-2 flex items-center justify-between rounded-sm bg-card border border-border p-2 text-[13px]">
                           <span>
                             {itinerary.carbon.intercity.mode === "flight" ? "✈️" : "🚌"}{" "}
                             Liên tỉnh ({itinerary.carbon.intercity.label}, khứ hồi{" "}
@@ -212,7 +212,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                           {itinerary.carbon.by_day.map((d) => (
                             <span
                               key={d.day}
-                              className="text-[10px] px-1.5 py-0.5 rounded-sm bg-card border border-border text-muted-foreground"
+                              className="text-[11px] px-1.5 py-0.5 rounded-sm bg-card border border-border text-muted-foreground"
                             >
                               Ngày {d.day}: {d.km} km · {d.kg} kg
                             </span>
@@ -221,7 +221,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                       )}
 
                       {itinerary.carbon.source && (
-                        <p className="mt-2 text-[10px] italic text-muted-foreground/70">
+                        <p className="mt-2 text-[11px] italic text-muted-foreground/70">
                           Hệ số phát thải: {itinerary.carbon.source}
                         </p>
                       )}
@@ -231,22 +231,22 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                   {/* Highlights */}
                   {highlights.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                         ✨ Điểm nhấn của chuyến đi
                       </p>
                       <div className="space-y-2">
                         {highlights.map((act, idx) => (
                           <div key={act.id} className="flex items-start gap-3 p-3 rounded-sm border border-border bg-card">
-                            <div className="w-7 h-7 rounded-md bg-terracotta text-white flex items-center justify-center font-bold text-xs shrink-0">
+                            <div className="w-7 h-7 rounded-md bg-terracotta text-white flex items-center justify-center font-bold text-[13px] shrink-0">
                               {idx + 1}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm text-foreground">{act.title}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-1">
+                              <p className="text-[13px] text-muted-foreground line-clamp-1">
                                 {act.location.name}
                               </p>
                             </div>
-                            <span className="text-xs text-terracotta font-semibold shrink-0">
+                            <span className="text-[13px] text-terracotta font-semibold shrink-0">
                               {formatVND(act.cost_estimate)}
                             </span>
                           </div>
@@ -329,7 +329,7 @@ function StatBox({
   };
   return (
     <div className={`rounded-sm border p-3 ${colors[color]}`}>
-      <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
+      <div className="flex items-center gap-1.5 text-[13px] font-medium opacity-80">
         {icon}
         {label}
       </div>

@@ -21,15 +21,15 @@ export default function LoginPage() {
             <Compass className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">
-            Compa<span className="text-[#146ef5]">sso</span>
+            Compasso
           </h1>
-          <p className="text-sm text-foreground/60 mt-1.5">Trợ lý du lịch AI cá nhân của bạn</p>
+          <p className="text-sm text-foreground/75 mt-1.5">Trợ lý du lịch AI cá nhân của bạn</p>
         </div>
 
         {/* Card */}
         <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-1">Đăng nhập</h2>
-          <p className="text-sm text-foreground/60 mb-6">
+          <p className="text-sm text-foreground/75 mb-6">
             Đăng nhập để lưu lịch trình và nhận cảnh báo thời tiết.
           </p>
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-foreground/40 mt-6">
+        <p className="text-center text-[13px] text-foreground/60 mt-6">
           Bằng cách đăng nhập, bạn đồng ý với Điều khoản dịch vụ của Compasso.
         </p>
       </div>

@@ -94,7 +94,7 @@ export default function ItineraryTimeline() {
           variant="outline"
           size="sm"
           onClick={() => addDraft(mockItinerary)}
-          className="text-xs border-border hover:border-terracotta hover:text-terracotta"
+          className="text-[13px] border-border hover:border-terracotta hover:text-terracotta"
         >
           Xem lịch trình mẫu
         </Button>
@@ -165,24 +165,24 @@ export default function ItineraryTimeline() {
                   {itinerary.title}
                 </h2>
                 {isConfirmed && (
-                  <Badge className="bg-sage/15 text-sage border-sage/30 text-[10px] rounded-sm shrink-0">
+                  <Badge className="bg-sage/15 text-sage border-sage/30 text-[11px] rounded-sm shrink-0">
                     <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                     Đã chốt
                   </Badge>
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground text-xs">
+              <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground text-[13px]">
                 <MapPin className="w-3.5 h-3.5 text-terracotta shrink-0" />
                 <span>{itinerary.destination}</span>
               </div>
 
               {/* Badges row — flex-wrap to prevent overflow */}
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge className="bg-terracotta/10 text-terracotta border-terracotta/20 text-xs rounded-sm">
+                <Badge className="bg-terracotta/10 text-terracotta border-terracotta/20 text-[13px] rounded-sm">
                   {totalDays} ngày
                 </Badge>
-                <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                <div className="flex items-center gap-1 text-muted-foreground text-[13px]">
                   <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                   <span>
                     {formatDate(itinerary.start_date)} →{" "}
@@ -197,7 +197,7 @@ export default function ItineraryTimeline() {
               </div>
 
               {itinerary.summary && (
-                <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
+                <p className="text-muted-foreground text-[13px] mt-2 leading-relaxed">
                   {itinerary.summary}
                 </p>
               )}
@@ -208,12 +208,12 @@ export default function ItineraryTimeline() {
           {itinerary.days.map((day, dayIdx) => (
             <div key={day.day} className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-terracotta text-white text-xs font-bold shrink-0">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-terracotta text-white text-[13px] font-bold shrink-0">
                   {day.day}
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-sm text-foreground">{day.theme}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[13px] text-muted-foreground">
                     {formatDate(day.date)}
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export default function ItineraryTimeline() {
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-sage" />
                 <span className="font-semibold text-sm text-foreground">Điểm Ẩn Đề Xuất</span>
-                <Badge className="text-xs bg-sage/10 text-sage border-sage/20 rounded-sm">
+                <Badge className="text-[13px] bg-sage/10 text-sage border-sage/20 rounded-sm">
                   {itinerary.hidden_gems.length} địa điểm
                 </Badge>
               </div>
@@ -263,12 +263,12 @@ export default function ItineraryTimeline() {
                       <p className="font-semibold text-sm text-foreground">{gem.name}</p>
                       <Badge
                         variant="outline"
-                        className="text-[10px] px-1.5 shrink-0 ml-2 text-sage border-sage/30 rounded-sm"
+                        className="text-[11px] px-1.5 shrink-0 ml-2 text-sage border-sage/30 rounded-sm"
                       >
                         {Math.round(gem.confidence_score * 100)}%
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="text-[13px] text-muted-foreground mt-0.5">
                       {gem.description}
                     </p>
                   </div>

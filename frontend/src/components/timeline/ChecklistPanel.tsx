@@ -114,7 +114,7 @@ function AddItemInput({ onAdd }: { onAdd: (label: string) => void }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-terracotta transition-colors py-1 pl-1"
+        className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-terracotta transition-colors py-1 pl-1"
       >
         <Plus className="w-3.5 h-3.5" />
         Thêm mục…
@@ -133,17 +133,17 @@ function AddItemInput({ onAdd }: { onAdd: (label: string) => void }) {
           if (e.key === "Escape") setOpen(false);
         }}
         placeholder="Tên mục…"
-        className="flex-1 text-xs bg-card border border-border rounded-sm px-2 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-terracotta"
+        className="flex-1 text-[13px] bg-card border border-border rounded-sm px-2 py-1.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-terracotta"
       />
       <button
         onClick={commit}
-        className="text-xs bg-terracotta text-white px-2 py-1.5 rounded-sm hover:bg-terracotta-dark transition-colors"
+        className="text-[13px] bg-terracotta text-white px-2 py-1.5 rounded-sm hover:bg-terracotta-dark transition-colors"
       >
         Thêm
       </button>
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-muted-foreground hover:text-foreground px-1 py-1.5"
+        className="text-[13px] text-muted-foreground hover:text-foreground px-1 py-1.5"
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -247,14 +247,14 @@ export default function ChecklistPanel() {
             </div>
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="flex items-center gap-1 text-[10px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-sm transition-colors shrink-0"
+              className="flex items-center gap-1 text-[11px] bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-sm transition-colors shrink-0"
               title="Khôi phục danh sách mặc định"
             >
               <RotateCcw className="w-3 h-3" />
               Khôi phục
             </button>
           </div>
-          <p className="text-white/80 text-xs mb-3">
+          <p className="text-white/80 text-[13px] mb-3">
             {checkedCount}/{totalItems} mục đã chuẩn bị
           </p>
           <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
@@ -282,13 +282,13 @@ export default function ChecklistPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={handleReset}
-                  className="text-xs bg-terracotta text-white px-3 py-1.5 rounded-sm hover:bg-terracotta-dark"
+                  className="text-[13px] bg-terracotta text-white px-3 py-1.5 rounded-sm hover:bg-terracotta-dark"
                 >
                   Khôi phục
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
-                  className="text-xs border border-border text-muted-foreground px-3 py-1.5 rounded-sm hover:bg-muted"
+                  className="text-[13px] border border-border text-muted-foreground px-3 py-1.5 rounded-sm hover:bg-muted"
                 >
                   Huỷ
                 </button>
@@ -308,7 +308,7 @@ export default function ChecklistPanel() {
             >
               <div className="flex items-center gap-2 mb-1">
                 <Cloud className="w-4 h-4 text-sage" />
-                <span className="text-xs font-semibold text-sage uppercase tracking-wide">
+                <span className="text-[13px] font-semibold text-sage uppercase tracking-wide">
                   Đề xuất theo lịch trình
                 </span>
               </div>
@@ -317,11 +317,11 @@ export default function ChecklistPanel() {
                   key={sug.id}
                   className="flex items-center justify-between gap-2 bg-card rounded-sm p-2 border border-border"
                 >
-                  <span className="text-xs text-foreground flex-1">{sug.label}</span>
+                  <span className="text-[13px] text-foreground flex-1">{sug.label}</span>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => dispatch({ type: "ACCEPT_SUGGESTION", item: sug })}
-                      className="text-[10px] bg-sage text-white px-2 py-1 rounded-sm hover:bg-sage-dark transition-colors"
+                      className="text-[11px] bg-sage text-white px-2 py-1 rounded-sm hover:bg-sage-dark transition-colors"
                     >
                       + Thêm
                     </button>
@@ -341,7 +341,7 @@ export default function ChecklistPanel() {
         {/* Checklist by category */}
         {Object.entries(grouped).map(([category, items]) => (
           <div key={category}>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               {category}
             </p>
             <div className="space-y-1.5">
@@ -378,7 +378,7 @@ export default function ChecklistPanel() {
                       >
                         {item.label}
                         {item.isCustom && (
-                          <span className="ml-1.5 text-[10px] text-terracotta/70 font-normal">tuỳ chỉnh</span>
+                          <span className="ml-1.5 text-[11px] text-terracotta/70 font-normal">tuỳ chỉnh</span>
                         )}
                       </span>
                       <button
@@ -412,13 +412,13 @@ export default function ChecklistPanel() {
         <div className="rounded-sm border border-sand bg-sand/50 dark:bg-secondary dark:border-border p-4">
           <div className="flex items-center gap-2 mb-2">
             <Lightbulb className="w-4 h-4 text-terracotta" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-terracotta">
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-terracotta">
               Lưu ý văn hoá
             </span>
           </div>
           <ul className="space-y-1.5">
             {CULTURAL_NOTES.map((note, idx) => (
-              <li key={idx} className="text-xs text-foreground">
+              <li key={idx} className="text-[13px] text-foreground">
                 {note}
               </li>
             ))}

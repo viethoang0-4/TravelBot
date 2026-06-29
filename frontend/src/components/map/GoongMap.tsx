@@ -16,7 +16,7 @@ const VN_CENTER: [number, number] = [107.5, 16.0]; // [lng, lat]
 const TYPE_COLORS: Record<ActivityType, string> = {
   transport: "#5B8AA5",
   accommodation: "#A87BA0",
-  food: "#D97757",
+  food: "#D64550",
   activity: "#C9A961",
   shopping: "#C77E8A",
   rest: "#87A878",
@@ -135,7 +135,7 @@ export default function GoongMap() {
           source: "routes",
           filter: ["==", "real", true],
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#D97757", "line-width": 4, "line-opacity": 0.85 },
+          paint: { "line-color": "#D64550", "line-width": 4, "line-opacity": 0.85 },
         });
         // Fallback nối thẳng (chưa có route thật / đã kéo-thả đổi chỗ) → nét đứt mờ.
         map.addLayer({

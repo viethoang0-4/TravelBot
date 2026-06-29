@@ -68,7 +68,7 @@ export default function ChatInput({ onSend }: Props) {
           className="pointer-events-none absolute -inset-[100%]"
           style={{
             background:
-              "conic-gradient(from 0deg, #D97757, #C9A961, #87A878, #5B8AA5, #D97757)",
+              "conic-gradient(from 0deg, #7132f5, #C9A961, #87A878, #5B8AA5, #7132f5)",
           }}
           animate={{ rotate: 360, opacity: focused ? 1 : 0 }}
           transition={{

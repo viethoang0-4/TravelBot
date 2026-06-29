@@ -37,7 +37,7 @@ export default function DraftsBar() {
   return (
     <div className="border-b border-border bg-muted/30 shrink-0">
       <div className="px-3 py-2 flex items-center gap-2 overflow-x-auto scrollbar-thin">
-        <span className="text-[11px] font-semibold uppercase tracking-wider shrink-0 mr-1 text-muted-foreground">
+        <span className="text-[12px] font-semibold uppercase tracking-wider shrink-0 mr-1 text-muted-foreground">
           Lịch trình ({drafts.length})
         </span>
 
@@ -45,7 +45,7 @@ export default function DraftsBar() {
           onClick={newConversation}
           title="Bắt đầu cuộc trò chuyện mới"
           className={cn(
-            "shrink-0 flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs font-medium border transition-all",
+            "shrink-0 flex items-center gap-1 h-8 px-2.5 rounded-sm text-[13px] font-medium border transition-all",
             activeDraftId === null
               ? "bg-terracotta text-white border-terracotta shadow-sm"
               : "bg-background/60 border-border text-muted-foreground hover:border-terracotta/50 hover:text-terracotta"
@@ -96,11 +96,11 @@ export default function DraftsBar() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold truncate text-foreground">
+                      <span className="text-[13px] font-semibold truncate text-foreground">
                         {draft.itinerary.title}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <Calendar className="w-2.5 h-2.5" />
                       <span>{formatRelativeDate(draft.created_at)}</span>
                       <span>·</span>
@@ -111,7 +111,7 @@ export default function DraftsBar() {
 
                   <Badge
                     className={cn(
-                      "text-[9px] px-1.5 py-0 h-4 shrink-0 border-0",
+                      "text-[10px] px-1.5 py-0 h-4 shrink-0 border-0",
                       isConfirmed
                         ? "bg-sage/15 text-sage"
                         : "bg-clay/10 text-clay"

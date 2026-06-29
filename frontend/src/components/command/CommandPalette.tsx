@@ -220,7 +220,7 @@ export default function CommandPalette() {
                 placeholder="Tìm tab, lịch trình, địa điểm..."
                 className="h-12 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
+              <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground sm:inline">
                 ESC
               </kbd>
             </div>
@@ -239,7 +239,7 @@ export default function CommandPalette() {
                   return (
                     <div key={cmd.id}>
                       {showHeader && (
-                        <div className="px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <div className="px-2 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                           {cmd.group}
                         </div>
                       )}
@@ -264,7 +264,7 @@ export default function CommandPalette() {
                           {cmd.label}
                         </span>
                         {cmd.hint && (
-                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                          <span className="shrink-0 text-[12px] text-muted-foreground">
                             {cmd.hint}
                           </span>
                         )}
@@ -279,7 +279,7 @@ export default function CommandPalette() {
             </div>
 
             {/* Footer gợi ý phím */}
-            <div className="flex items-center gap-3 border-t border-border bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-3 border-t border-border bg-muted/40 px-4 py-2 text-[12px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-border bg-background px-1">↑</kbd>
                 <kbd className="rounded border border-border bg-background px-1">↓</kbd>

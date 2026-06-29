@@ -21,10 +21,10 @@ const SEVERITY_CONFIG = {
   },
   warning: {
     icon: AlertTriangle,
-    bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
-    iconColor: "text-[#ff6b00]",
-    titleColor: "text-orange-900 dark:text-orange-100",
-    bar: "bg-[#ff6b00]",
+    bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800",
+    iconColor: "text-yellow-600",
+    titleColor: "text-yellow-900 dark:text-yellow-100",
+    bar: "bg-yellow-500",
   },
   info: {
     icon: Info,
@@ -105,16 +105,16 @@ function ToastCard({
     >
       <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", config.iconColor)} />
       <div className="min-w-0 flex-1">
-        <p className={cn("text-xs font-semibold leading-snug", config.titleColor)}>
+        <p className={cn("text-[13px] font-semibold leading-snug", config.titleColor)}>
           {notification.title}
         </p>
-        <p className="mt-0.5 line-clamp-2 text-xs text-foreground/60">
+        <p className="mt-0.5 line-clamp-2 text-[13px] text-foreground/75">
           {notification.body}
         </p>
       </div>
       <button
         onClick={onDismiss}
-        className="shrink-0 text-foreground/40 transition-colors hover:text-foreground/70"
+        className="shrink-0 text-foreground/60 transition-colors hover:text-foreground/70"
       >
         <X className="h-3.5 w-3.5" />
       </button>

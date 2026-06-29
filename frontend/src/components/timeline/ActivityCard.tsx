@@ -203,7 +203,7 @@ export default function ActivityCard({
           >
             <Icon className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[10px] font-medium text-white bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-sm">
+          <span className="text-[11px] font-medium text-white bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-sm">
             {config.label}
           </span>
         </div>
@@ -215,7 +215,7 @@ export default function ActivityCard({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Badge className="bg-[#ff6b00] text-white border-0 text-[10px] px-1.5 py-0 rounded-sm cursor-help">
+                    <Badge className="bg-yellow-400 text-yellow-950 border-0 text-[11px] px-1.5 py-0 rounded-sm cursor-help">
                       <CloudLightning className="w-2.5 h-2.5 mr-0.5" />
                       Thời tiết
                     </Badge>
@@ -230,7 +230,7 @@ export default function ActivityCard({
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Badge className="bg-acc-food text-white border-0 text-[10px] px-1.5 py-0 rounded-sm cursor-help">
+                    <Badge className="bg-acc-food text-white border-0 text-[11px] px-1.5 py-0 rounded-sm cursor-help">
                       <Gem className="w-2.5 h-2.5 mr-0.5" />
                       Điểm ẩn
                     </Badge>
@@ -262,7 +262,7 @@ export default function ActivityCard({
           ) : (
             <>
               {activity.is_hidden_gem && (
-                <Badge className="absolute top-2 right-10 bg-acc-food text-white border-0 text-[10px] px-1.5 py-0 rounded-sm">
+                <Badge className="absolute top-2 right-10 bg-acc-food text-white border-0 text-[11px] px-1.5 py-0 rounded-sm">
                   <Gem className="w-2.5 h-2.5 mr-0.5" />
                   Điểm ẩn
                 </Badge>
@@ -296,11 +296,11 @@ export default function ActivityCard({
           <div className="flex items-center gap-2 mt-0.5">
             <div className="flex items-center gap-0.5 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-sm">
               <Star className="w-2.5 h-2.5 text-acc-fun fill-acc-fun" />
-              <span className="text-[10px] text-white font-medium">
+              <span className="text-[11px] text-white font-medium">
                 {rating.toFixed(1)}
               </span>
             </div>
-            <span className="text-[10px] text-white/90 truncate">
+            <span className="text-[11px] text-white/90 truncate">
               <MapPin className="w-2.5 h-2.5 inline mr-0.5" />
               {activity.location.name}
             </span>
@@ -310,11 +310,11 @@ export default function ActivityCard({
 
       {/* Body */}
       <div className="p-3">
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+        <p className="text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">
           {activity.description}
         </p>
 
-        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 mt-2 text-[13px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {activity.time} · {formatDuration(activity.duration_minutes)}
@@ -329,7 +329,7 @@ export default function ActivityCard({
         {isSelected && activity.tips && (
           <div className="mt-2 flex items-start gap-1.5 bg-sand border border-clay/20 rounded-sm p-2">
             <Lightbulb className="w-3.5 h-3.5 text-terracotta shrink-0 mt-0.5" />
-            <span className="text-xs text-foreground">
+            <span className="text-[13px] text-foreground">
               {activity.tips}
             </span>
           </div>
@@ -338,7 +338,7 @@ export default function ActivityCard({
         {/* View on map button */}
         <button
           onClick={handleViewOnMap}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5 rounded-sm border border-terracotta/30 text-terracotta hover:bg-terracotta/10 transition-all"
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-[13px] font-semibold py-1.5 rounded-sm border border-terracotta/30 text-terracotta hover:bg-terracotta/10 transition-all"
         >
           <MapPin className="w-3 h-3" />
           Xem trên bản đồ

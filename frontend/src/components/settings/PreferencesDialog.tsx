@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 /** Hồ sơ sở thích tường minh — nạp vào Planner để cá nhân hóa lịch trình (không train model). */
 interface Preferences {
@@ -63,6 +64,10 @@ export default function PreferencesDialog({ open, onClose }: Props) {
   const [prefs, setPrefs] = useState<Preferences>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Render qua portal vào document.body để thoát containing-block của <header> (backdrop-blur)
+  useEffect(() => setMounted(true), []);
 
   // Nạp hồ sơ hiện tại mỗi lần mở
   useEffect(() => {
@@ -102,7 +107,9 @@ export default function PreferencesDialog({ open, onClose }: Props) {
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -137,7 +144,7 @@ export default function PreferencesDialog({ open, onClose }: Props) {
                   </div>
                   <div>
                     <h2 className="font-bold text-base text-foreground">Sở thích du lịch</h2>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[13px] text-muted-foreground">
                       Compasso dùng để cá nhân hóa mọi lịch trình của bạn
                     </p>
                   </div>
@@ -161,7 +168,7 @@ export default function PreferencesDialog({ open, onClose }: Props) {
                               type="button"
                               onClick={() => toggleInterest(it)}
                               className={cn(
-                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
+                                "px-2.5 py-1 rounded-full text-[13px] border transition-colors",
                                 active
                                   ? "bg-terracotta text-white border-terracotta"
                                   : "bg-muted/40 text-muted-foreground border-border hover:border-terracotta/50"
@@ -247,7 +254,8 @@ export default function PreferencesDialog({ open, onClose }: Props) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

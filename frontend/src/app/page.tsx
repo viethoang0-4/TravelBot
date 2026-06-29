@@ -20,7 +20,7 @@ export default function LandingPage() {
             <Compass className="w-5 h-5 text-white" />
           </div>
           <span className="font-semibold text-lg tracking-tight text-foreground">
-            Compa<span className="text-terracotta">sso</span>
+            Compasso
           </span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-[15px] font-medium text-muted-foreground">

@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recha
 import { CalendarDays, Wallet } from "lucide-react";
 
 // Warm earthy palette matching activity type colors
-const COLORS = ["#A87BA0", "#5B8AA5", "#D97757", "#C9A961", "#87A878"];
+const COLORS = ["#A87BA0", "#5B8AA5", "#D64550", "#C9A961", "#87A878"];
 
 const LABELS: Record<string, string> = {
   accommodation: "Lưu trú",
@@ -32,7 +32,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
     <div className="bg-popover border border-border rounded-md shadow-md px-3 py-2 text-sm">
       <p className="font-semibold text-foreground">{item.name}</p>
       <p className="text-muted-foreground">{formatVND(item.value)} VND</p>
-      <p className="text-xs text-terracotta font-bold">
+      <p className="text-[13px] text-terracotta font-bold">
         {(item.payload.percent * 100).toFixed(1)}%
       </p>
     </div>
@@ -74,7 +74,7 @@ export default function BudgetChart() {
           {(budget.total_estimated / 1000000).toFixed(1)}
           <span className="text-lg font-medium ml-1 text-muted-foreground">triệu VND</span>
         </p>
-        <div className="flex items-center gap-2 mt-1 text-muted-foreground text-xs">
+        <div className="flex items-center gap-2 mt-1 text-muted-foreground text-[13px]">
           <CalendarDays className="w-3.5 h-3.5" />
           <span>
             ~{(budget.total_estimated / itinerary.days.length / 1000000).toFixed(1)}tr/ngày · {itinerary.days.length} ngày
@@ -102,7 +102,7 @@ export default function BudgetChart() {
             <Tooltip content={<CustomTooltip />} />
             <Legend
               formatter={(value) => (
-                <span className="text-xs text-foreground">{value}</span>
+                <span className="text-[13px] text-foreground">{value}</span>
               )}
             />
           </PieChart>
@@ -111,7 +111,7 @@ export default function BudgetChart() {
 
       {/* Breakdown List */}
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
           Chi tiết ngân sách
         </p>
         {data.map((item, i) => (
@@ -132,7 +132,7 @@ export default function BudgetChart() {
                     }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground w-12 text-right font-semibold">
+                <span className="text-[13px] text-muted-foreground w-12 text-right font-semibold">
                   {formatVND(item.value)}
                 </span>
               </div>
@@ -143,10 +143,10 @@ export default function BudgetChart() {
 
       {/* Note */}
       <div className="bg-sand/50 dark:bg-secondary border border-sand dark:border-border rounded-sm p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-terracotta mb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-terracotta mb-2">
           Lưu ý
         </p>
-        <p className="text-xs text-foreground leading-relaxed">
+        <p className="text-[13px] text-foreground leading-relaxed">
           Đây là ước tính dựa trên mức giá trung bình. Chi phí thực tế có thể thay đổi tùy thời điểm, mùa vụ và lựa chọn cá nhân.
         </p>
       </div>

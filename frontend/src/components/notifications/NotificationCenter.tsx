@@ -16,7 +16,7 @@ const SEVERITY_ICON = {
 };
 const SEVERITY_COLOR = {
   critical: "text-red-500",
-  warning: "text-[#ff6b00]",
+  warning: "text-yellow-600",
   info: "text-[#146ef5]",
 };
 
@@ -75,7 +75,7 @@ export default function NotificationCenter() {
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -90,7 +90,7 @@ export default function NotificationCenter() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAll}
-                className="flex items-center gap-1 text-xs text-[#146ef5] hover:underline"
+                className="flex items-center gap-1 text-[13px] text-[#146ef5] hover:underline"
               >
                 <CheckCheck className="w-3 h-3" />
                 Đánh dấu tất cả đã đọc
@@ -101,7 +101,7 @@ export default function NotificationCenter() {
           {/* List */}
           <div className="max-h-96 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 ? (
-              <div className="py-10 text-center text-sm text-foreground/40">
+              <div className="py-10 text-center text-sm text-foreground/60">
                 Không có thông báo nào
               </div>
             ) : (
@@ -119,15 +119,15 @@ export default function NotificationCenter() {
                     <Icon
                       className={cn(
                         "w-4 h-4 shrink-0 mt-0.5",
-                        SEVERITY_COLOR[n.severity] ?? "text-foreground/40"
+                        SEVERITY_COLOR[n.severity] ?? "text-foreground/60"
                       )}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className={cn("text-xs font-medium text-foreground line-clamp-2", !n.read && "font-semibold")}>
+                      <p className={cn("text-[13px] font-medium text-foreground line-clamp-2", !n.read && "font-semibold")}>
                         {n.title}
                       </p>
-                      <p className="text-xs text-foreground/50 mt-0.5 line-clamp-2">{n.body}</p>
-                      <p className="text-[10px] text-foreground/30 mt-1">{timeAgo(n.created_at)}</p>
+                      <p className="text-[13px] text-foreground/68 mt-0.5 line-clamp-2">{n.body}</p>
+                      <p className="text-[11px] text-foreground/30 mt-1">{timeAgo(n.created_at)}</p>
                     </div>
                     {n.read && <Check className="w-3 h-3 text-foreground/20 shrink-0 mt-0.5" />}
                   </button>

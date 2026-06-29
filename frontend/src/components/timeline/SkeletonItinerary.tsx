@@ -38,7 +38,7 @@ export default function SkeletonItinerary() {
 
       {/* Processing steps */}
       <div className="rounded-sm border border-terracotta/20 bg-terracotta/5 p-4 space-y-2.5 shadow-sm">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-terracotta mb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-terracotta mb-2">
           Compasso đang lập kế hoạch...
         </p>
         {PLANNING_STEPS.map((step, idx) => {

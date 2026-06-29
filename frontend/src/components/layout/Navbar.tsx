@@ -71,11 +71,11 @@ function UserMenu() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={name ?? "avatar"} className="w-6 h-6 rounded-full object-cover" />
         ) : (
-          <div className="w-6 h-6 rounded-full bg-[#146ef5] flex items-center justify-center text-white text-[10px] font-bold">
+          <div className="w-6 h-6 rounded-full bg-[#146ef5] flex items-center justify-center text-white text-[11px] font-bold">
             {initials}
           </div>
         )}
-        <span className="text-xs font-medium text-foreground hidden sm:block max-w-24 truncate">
+        <span className="text-[13px] font-medium text-foreground hidden sm:block max-w-24 truncate">
           {name || email}
         </span>
         <ChevronDown className="w-3 h-3 text-muted-foreground" />
@@ -84,24 +84,24 @@ function UserMenu() {
       {open && (
         <div className="absolute right-0 top-10 w-52 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden py-1">
           <div className="px-3 py-2 border-b border-border">
-            <p className="text-xs font-semibold text-foreground truncate">{name}</p>
-            <p className="text-[11px] text-foreground/50 truncate">{email}</p>
+            <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
+            <p className="text-[12px] text-foreground/68 truncate">{email}</p>
           </div>
           <button
             onClick={() => {
               setOpen(false);
               setPrefsOpen(true);
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted transition-colors"
           >
-            <Heart className="w-3.5 h-3.5 text-foreground/50" />
+            <Heart className="w-3.5 h-3.5 text-foreground/68" />
             Sở thích du lịch
           </button>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted transition-colors"
           >
-            <LogOut className="w-3.5 h-3.5 text-foreground/50" />
+            <LogOut className="w-3.5 h-3.5 text-foreground/68" />
             Đăng xuất
           </button>
         </div>
@@ -144,7 +144,7 @@ export default function Navbar() {
             <Compass className="w-5 h-5 text-white" />
           </div>
           <span className="font-semibold text-base tracking-tight text-foreground">
-            Compa<span className="text-terracotta">sso</span>
+            Compasso
           </span>
         </Link>
 
@@ -155,11 +155,11 @@ export default function Navbar() {
             onClick={() =>
               window.dispatchEvent(new CustomEvent("travelbot:open-command-palette"))
             }
-            className="hidden sm:flex items-center gap-2 h-8 pl-2.5 pr-2 rounded-md border border-border bg-muted/40 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="hidden sm:flex items-center gap-2 h-8 pl-2.5 pr-2 rounded-md border border-border bg-muted/40 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <Search className="w-3.5 h-3.5" />
             <span>Tìm nhanh</span>
-            <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[10px] font-medium">
+            <kbd className="rounded border border-border bg-background px-1 py-0.5 text-[11px] font-medium">
               Ctrl K
             </kbd>
           </button>

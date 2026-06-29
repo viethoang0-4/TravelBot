@@ -38,7 +38,7 @@ export function VercelTabs({ tabs, activeId, onChange, className }: VercelTabsPr
             onClick={() => onChange(tab.id)}
             onMouseEnter={() => setHoveredId(tab.id)}
             className={cn(
-              "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors duration-200",
+              "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-[12px] font-bold uppercase tracking-wider transition-colors duration-200",
               isActive
                 ? "text-terracotta"
                 : "text-muted-foreground hover:text-foreground"
