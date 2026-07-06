@@ -6,7 +6,7 @@ Replace with SQLAlchemy implementations when a real DB is available.
 """
 import json
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -205,3 +205,27 @@ class MockNotificationRepository(NotificationRepository):
             ):
                 return True
         return False
+
+    async def list_pending_email(self, within_hours: int = 48, limit: int = 50) -> list[dict]:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=within_hours)).isoformat()
+        pending = [
+            r for r in _read_json(_NOTIFICATIONS_FILE)
+            if r.get("email_sent") is False and r.get("created_at", "") >= cutoff
+        ]
+        pending.sort(key=lambda r: r.get("created_at", ""))  # oldest first
+        return pending[:limit]
+
+    async def mark_email_sent(self, notification_ids: list[str]) -> int:
+        if not notification_ids:
+            return 0
+        ids = set(notification_ids)
+        async with _notification_lock:
+            records = _read_json(_NOTIFICATIONS_FILE)
+            count = 0
+            for r in records:
+                if r.get("notification_id") in ids and r.get("email_sent") is False:
+                    r["email_sent"] = True
+                    count += 1
+            if count:
+                _write_json(_NOTIFICATIONS_FILE, records)
+        return count

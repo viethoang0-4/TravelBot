@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     gmail_user: str = ""
     gmail_app_password: str = ""
     email_from_name: str = "Compasso Alert"
+    # HF Spaces chặn MỌI cổng outbound trừ 80/443/8080 → không gửi SMTP trực tiếp được.
+    # Đặt EMAIL_DIRECT_SEND=false (Dockerfile đã đặt): backend trả danh sách email chờ
+    # gửi qua /internal/weather-check để cron GitHub Actions gửi hộ từ runner.
+    email_direct_send: bool = True
 
     # ── Triển khai (deploy) ──────────────────────────────────────────────
     # Production trên host free (HF Spaces) "ngủ" khi không có traffic → APScheduler

@@ -7,6 +7,7 @@ POST /api/v1/weather/check-now           — trigger weather job for current use
 from fastapi import APIRouter, Depends, Query
 
 from ..auth.dependencies import get_current_user
+from ..config import get_settings
 from ..db.base import ItineraryRepository
 from ..db.dependencies import get_itinerary_repo
 from ..services import weather as weather_svc
@@ -51,14 +52,16 @@ async def trigger_weather_check(
 
     for itin in itineraries:
         new_alerts = await alert_svc.check_itinerary(current_user, itin)
-        if new_alerts:
-            await alert_svc.dispatch_alerts(current_user, itin, new_alerts)
         total_alerts += len(new_alerts)
         results.append({
             "itinerary_id": itin.get("itinerary_id"),
             "title": itin.get("title"),
             "new_alerts": len(new_alerts),
         })
+
+    # Giao email: local gửi ngay; trên HF (EMAIL_DIRECT_SEND=false) thông báo vẫn ở trạng thái
+    # chưa gửi và cron hằng giờ sẽ gửi hộ (vì lấy từ thông báo chưa gửi, không phụ thuộc lượt này).
+    await alert_svc.flush_pending_emails(get_settings().email_direct_send)
 
     return {
         "checked": len(itineraries),

@@ -31,4 +31,8 @@ EXPOSE 7860
 # (Có thể override bằng biến môi trường của Space.)
 ENV SCHEDULER_ENABLED=false
 
+# HF Spaces chặn mọi cổng outbound trừ 80/443/8080 → không gửi SMTP trực tiếp được.
+# Backend trả email chờ gửi qua /internal/weather-check để cron GitHub Actions gửi hộ.
+ENV EMAIL_DIRECT_SEND=false
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

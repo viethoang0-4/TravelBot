@@ -8,7 +8,7 @@ from ..config import get_settings
 _WEBFLOW_BLUE = "#146ef5"
 
 
-def _build_html(itinerary_title: str, alerts: list[dict]) -> str:
+def build_alert_html(itinerary_title: str, alerts: list[dict]) -> str:
     fe_url = get_settings().frontend_url.rstrip("/")
     rows = ""
     for a in alerts:
@@ -76,26 +76,26 @@ def _build_html(itinerary_title: str, alerts: list[dict]) -> str:
 </html>"""
 
 
-async def send_weather_alert(user: dict, itinerary: dict, alerts: list[dict]) -> bool:
-    """Send HTML weather alert email. Returns True on success."""
+async def send_prebuilt(email: dict) -> bool:
+    """Gửi một email đã dựng sẵn {to, from_name, subject, html} qua Gmail SMTP.
+
+    Chỉ dùng khi EMAIL_DIRECT_SEND=true (local). Trên HF Spaces (chặn cổng SMTP outbound)
+    việc gửi do cron GitHub Actions đảm nhiệm, không đi qua hàm này.
+    """
     settings = get_settings()
     if not settings.gmail_user or not settings.gmail_app_password:
         print("[EMAIL] Gmail credentials not set — skipping email send")
         return False
 
-    to_email = user.get("email", "")
+    to_email = email.get("to")
     if not to_email:
         return False
 
-    itinerary_title = itinerary.get("title", "Lịch trình")
-
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"[Compasso] Cảnh báo thời tiết: {itinerary_title}"
-    msg["From"] = f"{settings.email_from_name} <{settings.gmail_user}>"
+    msg["Subject"] = email["subject"]
+    msg["From"] = f"{email.get('from_name', settings.email_from_name)} <{settings.gmail_user}>"
     msg["To"] = to_email
-
-    html_body = _build_html(itinerary_title, alerts)
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(MIMEText(email["html"], "html", "utf-8"))
 
     try:
         await aiosmtplib.send(
@@ -105,8 +105,9 @@ async def send_weather_alert(user: dict, itinerary: dict, alerts: list[dict]) ->
             start_tls=True,
             username=settings.gmail_user,
             password=settings.gmail_app_password,
+            timeout=20,
         )
-        print(f"[EMAIL] Sent weather alert to {to_email} ({len(alerts)} alerts)")
+        print(f"[EMAIL] Sent weather alert to {to_email}")
         return True
     except Exception as exc:
         print(f"[EMAIL] Failed to send to {to_email}: {exc}")

@@ -9,6 +9,7 @@ giving real ACID storage. Switch on by setting DATABASE_URL in .env, e.g.
 
 Tables are created automatically on startup (see main.py -> init_db()).
 """
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, String, select, delete, func
@@ -340,3 +341,40 @@ class SqlNotificationRepository(NotificationRepository):
                 )
             )).scalar_one()
         return found > 0
+
+    async def list_pending_email(self, within_hours: int = 48, limit: int = 50) -> list[dict]:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=within_hours)).isoformat()
+        Session = get_session_factory()
+        async with Session() as s:
+            stmt = (
+                select(NotificationRow.data)
+                # Chỉ bản ghi có email_sent == false (bản ghi cũ thiếu khoá -> NULL -> loại,
+                # tránh gửi lại toàn bộ lịch sử sau khi triển khai tính năng này).
+                # as_boolean() portable cho JSON/JSONB (không dùng .astext vốn chỉ có ở JSONB).
+                .where(NotificationRow.data["email_sent"].as_boolean().is_(False))
+                .where(NotificationRow.created_at >= cutoff)
+                .order_by(NotificationRow.created_at.asc())
+                .limit(limit)
+            )
+            rows = (await s.execute(stmt)).scalars().all()
+        return list(rows)
+
+    async def mark_email_sent(self, notification_ids: list[str]) -> int:
+        if not notification_ids:
+            return 0
+        Session = get_session_factory()
+        async with Session() as s:
+            rows = (await s.execute(
+                select(NotificationRow).where(
+                    NotificationRow.notification_id.in_(notification_ids)
+                )
+            )).scalars().all()
+            count = 0
+            for row in rows:
+                data = dict(row.data)
+                if data.get("email_sent") is False:
+                    data["email_sent"] = True
+                    row.data = data
+                    count += 1
+            await s.commit()
+        return count

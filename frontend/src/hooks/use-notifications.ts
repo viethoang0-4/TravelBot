@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useTravelStore } from "@/store/travel-store";
 import { Notification } from "@/types/notification";
 
-const BACKEND = "http://localhost:8000";
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 const POLL_INTERVAL_MS = 30_000;
 
 export function useNotifications() {

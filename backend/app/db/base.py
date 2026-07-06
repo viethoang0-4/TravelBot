@@ -88,3 +88,13 @@ class NotificationRepository(ABC):
     async def exists_for_activity(self, user_id: str, activity_id: str, title: str) -> bool:
         """Check if a similar notification was already sent (dedup)."""
         ...
+
+    @abstractmethod
+    async def list_pending_email(self, within_hours: int = 48, limit: int = 50) -> list[dict]:
+        """Alert notifications whose email has not been delivered yet (email_sent is False)."""
+        ...
+
+    @abstractmethod
+    async def mark_email_sent(self, notification_ids: list[str]) -> int:
+        """Mark the given notifications' email as delivered. Returns count updated."""
+        ...

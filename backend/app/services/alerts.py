@@ -9,6 +9,7 @@ from typing import Optional
 
 from . import weather as weather_svc
 from . import email as email_svc
+from ..config import get_settings
 from ..db.base import NotificationRepository
 from ..db.dependencies import get_notification_repo
 
@@ -115,6 +116,8 @@ async def check_itinerary(user: dict, itinerary: dict) -> list[dict]:
                 title=title,
                 body=body,
                 severity="critical" if condition_name == "thunderstorm" else "warning",
+                user_email=user.get("email"),
+                itinerary_title=itinerary.get("title", "Lịch trình"),
             )
             alerts_created.append(notification)
 
@@ -129,6 +132,8 @@ async def _create_notification(
     title: str,
     body: str,
     severity: str,
+    user_email: Optional[str] = None,
+    itinerary_title: Optional[str] = None,
 ) -> dict:
     import uuid
     notification = {
@@ -141,12 +146,65 @@ async def _create_notification(
         "severity": severity,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "read": False,
+        # Trạng thái gửi email + thông tin để dựng email sau (người nhận, tên lịch trình).
+        # email_sent=False -> chờ gửi; đánh dấu True khi đã giao thành công (retry-safe).
+        "email_sent": False,
+        "user_email": user_email,
+        "itinerary_title": itinerary_title,
     }
     return await repo.save(notification)
 
 
-async def dispatch_alerts(user: dict, itinerary: dict, alerts: list[dict]) -> None:
-    """Send email for a batch of alerts."""
-    if not alerts:
-        return
-    await email_svc.send_weather_alert(user, itinerary, alerts)
+def _pending_to_emails(pending: list[dict]) -> list[dict]:
+    """Gom các thông báo chưa gửi email theo (người nhận, lịch trình) -> danh sách email."""
+    groups: dict[tuple, dict] = {}
+    for n in pending:
+        to = n.get("user_email")
+        if not to:
+            continue  # thông báo cũ không có địa chỉ -> bỏ qua an toàn
+        key = (to, n.get("itinerary_id"))
+        g = groups.setdefault(key, {
+            "to": to,
+            "itinerary_title": n.get("itinerary_title") or "Lịch trình",
+            "alerts": [],
+            "notification_ids": [],
+        })
+        g["alerts"].append({
+            "title": n.get("title", ""),
+            "body": n.get("body", ""),
+            "severity": n.get("severity", "warning"),
+        })
+        g["notification_ids"].append(n["notification_id"])
+
+    from_name = get_settings().email_from_name
+    emails = []
+    for g in groups.values():
+        emails.append({
+            "to": g["to"],
+            "from_name": from_name,
+            "subject": f"[Compasso] Cảnh báo thời tiết: {g['itinerary_title']}",
+            "html": email_svc.build_alert_html(g["itinerary_title"], g["alerts"]),
+            "notification_ids": g["notification_ids"],
+        })
+    return emails
+
+
+async def flush_pending_emails(direct_send: bool) -> list[dict]:
+    """Giao các cảnh báo chưa gửi email. Nguồn dữ liệu là các thông báo có email_sent=False
+    (KHÔNG phải "cảnh báo mới của lượt này") nên mọi lần chạy đều thử lại phần chưa giao được.
+
+    - direct_send=True (local): gửi ngay qua SMTP, đánh dấu đã gửi, trả [].
+    - direct_send=False (HF Spaces chặn SMTP): trả danh sách email kèm notification_ids để
+      cron GitHub Actions gửi hộ rồi gọi /internal/mark-emails-sent báo lại (retry-safe).
+    """
+    repo = get_notification_repo()
+    emails = _pending_to_emails(await repo.list_pending_email())
+    if not direct_send:
+        return emails
+    sent_ids: list[str] = []
+    for e in emails:
+        if await email_svc.send_prebuilt(e):
+            sent_ids.extend(e["notification_ids"])
+    if sent_ids:
+        await repo.mark_email_sent(sent_ids)
+    return []

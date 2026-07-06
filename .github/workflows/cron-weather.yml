@@ -2,9 +2,16 @@ name: Weather check (hourly)
 
 # Thay APScheduler in-process (host free "ngủ" khi rảnh): cron NGOÀI gọi endpoint
 # nội bộ mỗi giờ → chạy job cảnh báo thời tiết + đánh thức service (chống cold start).
+#
+# HF Spaces chặn MỌI cổng outbound trừ 80/443/8080 nên backend KHÔNG tự gửi được
+# email SMTP → backend trả danh sách email chờ gửi trong response, runner này gửi
+# hộ qua Gmail SMTP (GitHub Actions cho phép outbound 465/587).
+#
 # Cấu hình trên GitHub repo:
 #   - Variable BACKEND_URL          : URL backend (vd: https://vhvhvh-compasso-api.hf.space)
 #   - Secret   INTERNAL_API_SECRET  : trùng với INTERNAL_API_SECRET trên backend
+#   - Secret   GMAIL_USER           : địa chỉ Gmail gửi cảnh báo (trùng trên HF Space)
+#   - Secret   GMAIL_APP_PASSWORD   : app password 16 ký tự (trùng trên HF Space)
 on:
   schedule:
     - cron: "0 * * * *" # mỗi giờ (UTC)
@@ -24,4 +31,73 @@ jobs:
           fi
           curl -fsS -X POST "${BACKEND_URL%/}/api/v1/internal/weather-check" \
             -H "X-Internal-Secret: ${INTERNAL_API_SECRET}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json" \
+            -o response.json
+          echo "Cảnh báo mới: $(jq -r '.alerts // 0' response.json) — email chờ gửi: $(jq '.emails | length' response.json)"
+
+      - name: Send pending alert emails
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          COUNT=$(jq '.emails | length' response.json 2>/dev/null || echo 0)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "Không có email cần gửi."; exit 0
+          fi
+          if [ -z "$GMAIL_USER" ] || [ -z "$GMAIL_APP_PASSWORD" ]; then
+            # An toàn: backend giữ thông báo ở trạng thái chưa gửi -> lượt sau gửi lại,
+            # nên bỏ lượt này không làm mất email. Fail để cảnh báo cấu hình còn thiếu.
+            echo "::error::Có $COUNT email chờ nhưng thiếu secret GMAIL_USER/GMAIL_APP_PASSWORD (sẽ thử lại lượt sau)"; exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, smtplib, urllib.request
+          from email.mime.multipart import MIMEMultipart
+          from email.mime.text import MIMEText
+
+          user = os.environ["GMAIL_USER"]
+          pwd = os.environ["GMAIL_APP_PASSWORD"]
+          emails = json.load(open("response.json")).get("emails") or []
+
+          sent_ids, failed = [], 0
+          try:
+              s = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30)
+              s.login(user, pwd)
+          except Exception as exc:
+              # Đăng nhập lỗi (sai app password, throttle...): không đánh dấu gì -> retry lượt sau.
+              raise SystemExit(f"::error::Đăng nhập SMTP thất bại: {exc}")
+
+          with s:
+              for e in emails:
+                  try:
+                      msg = MIMEMultipart("alternative")
+                      msg["Subject"] = e["subject"]
+                      msg["From"] = f"{e.get('from_name', 'Compasso Alert')} <{user}>"
+                      msg["To"] = e["to"]
+                      msg.attach(MIMEText(e["html"], "html", "utf-8"))
+                      s.sendmail(user, [e["to"]], msg.as_string())
+                      sent_ids += e.get("notification_ids", [])
+                      print(f"Đã gửi cảnh báo tới {e['to'][:3]}***")
+                  except Exception as exc:
+                      failed += 1
+                      print(f"::warning::Gửi thất bại cho {e['to'][:3]}***: {exc} (thử lại lượt sau)")
+
+          # Báo lại backend để đánh dấu các email ĐÃ GỬI THÀNH CÔNG (email chưa gửi được
+          # giữ nguyên email_sent=False và sẽ được thử lại ở lượt cron kế tiếp).
+          backend = os.environ.get("BACKEND_URL", "").rstrip("/")
+          secret = os.environ.get("INTERNAL_API_SECRET", "")
+          if sent_ids and backend and secret:
+              req = urllib.request.Request(
+                  f"{backend}/api/v1/internal/mark-emails-sent",
+                  data=json.dumps({"notification_ids": sent_ids}).encode(),
+                  headers={"Content-Type": "application/json", "X-Internal-Secret": secret},
+                  method="POST",
+              )
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  print("mark-emails-sent:", r.read().decode())
+
+          print(f"Xong: gửi {len(sent_ids)} email, thất bại {failed}.")
+          if failed:
+              raise SystemExit(1)
+          PY
