@@ -196,11 +196,19 @@ export interface ClarifyPayload {
   questions: ClarifyQuestion[];
 }
 
+/**
+ * Mốc hoàn thiện của lịch trình khi stream (progressive rendering):
+ *  - drafting:  vừa xong planner (tọa độ tạm, chưa có tuyến/thời tiết)
+ *  - enriching: đã neo tọa độ + tuyến Goong + cờ thời tiết (sau grounding/weather)
+ *  - ready:     bản cuối đã qua critic + lưu DB → mở khoá sửa/chốt
+ */
+export type PlanStage = "drafting" | "enriching" | "ready";
+
 export type StreamEvent =
   | { type: "thinking"; content: string }
   | { type: "searching"; content: string }
   | { type: "text"; content: string }
-  | { type: "itinerary"; content: Itinerary }
+  | { type: "itinerary"; content: Itinerary; stage?: PlanStage }
   | { type: "questions"; content: ClarifyPayload }
   | { type: "error"; content: string }
   | { type: "done" };

@@ -27,10 +27,11 @@ from ..models.chat import ChatRequest
 router = APIRouter()
 
 
-def _sse(event_type: str, content=None) -> str:
+def _sse(event_type: str, content=None, **extra) -> str:
     payload: dict = {"type": event_type}
     if content is not None:
         payload["content"] = content
+    payload.update(extra)  # vd stage="drafting"|"enriching"|"ready" cho sự kiện itinerary
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
@@ -99,6 +100,15 @@ async def chat(
                             captured_itinerary = out["final_itinerary"]
                         if out.get("clarify_questions"):
                             captured_questions = out["clarify_questions"]
+                        # Hiển thị SỚM (progressive): bắn lịch trình ngay khi planner xong
+                        # (stage=drafting, tọa độ tạm) rồi lại bắn sau weather (stage=enriching,
+                        # đã có tọa độ/tuyến Goong + cờ thời tiết) — người dùng thấy lịch trình
+                        # trong vài giây thay vì đợi cả đồ thị. Cùng itinerary_id nên FE cập nhật
+                        # TẠI CHỖ (planner giữ id ổn định qua các vòng revise). Chưa lưu DB ở đây.
+                        if node_name == "planner" and out.get("draft_itinerary"):
+                            yield _sse("itinerary", out["draft_itinerary"], stage="drafting")
+                        elif node_name == "weather" and out.get("draft_itinerary"):
+                            yield _sse("itinerary", out["draft_itinerary"], stage="enriching")
                         # refuse node không stream token → đẩy câu từ chối cố định ra dưới dạng text
                         if node_name == "refuse" and out.get("full_response"):
                             yield _sse("text", out["full_response"])
@@ -110,12 +120,13 @@ async def chat(
                     {"intro": CLARIFY_INTRO, "questions": captured_questions},
                 )
 
-            # Persist the validated itinerary — attach user_id
+            # Persist the validated itinerary — attach user_id. stage=ready → FE mở khoá
+            # sửa/chốt (bản cuối đã qua grounding + weather + critic).
             if captured_itinerary:
                 try:
                     captured_itinerary["user_id"] = user_id  # scope to user
                     saved = await itinerary_repo.save(captured_itinerary)
-                    yield _sse("itinerary", saved)
+                    yield _sse("itinerary", saved, stage="ready")
                 except Exception as exc:
                     print(f"[CHAT] save itinerary failed: {exc}")
 

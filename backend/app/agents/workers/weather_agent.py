@@ -3,10 +3,14 @@
 Reuses services/weather.py. Sets weather_sensitive on outdoor activities that fall
 in a severe slot, and builds a weather_summary the critic & planner reason over.
 """
+import asyncio
 from datetime import datetime, timezone
 
 from ..state import TravelAgentState
 from ...services import weather as weather_svc
+
+# Số call dự báo thời tiết đồng thời tối đa (song song hóa nhưng chặn burst API).
+_WEATHER_CONCURRENCY = 6
 
 
 async def weather_node(state: TravelAgentState) -> dict:
@@ -14,9 +18,28 @@ async def weather_node(state: TravelAgentState) -> dict:
     if not draft:
         return {"weather_summary": []}
 
-    summary: list[dict] = []
-    coord_cache: dict[str, dict | None] = {}
+    # Gom tọa độ DUY NHẤT (làm tròn 3 chữ số) rồi lấy dự báo SONG SONG (bounded) thay vì
+    # gọi tuần tự từng điểm.
+    coords: dict[str, tuple[float, float]] = {}
+    for day in draft.get("days", []):
+        for a in day.get("activities", []):
+            loc = a.get("location", {})
+            lat, lng = loc.get("lat"), loc.get("lng")
+            if not lat or not lng:
+                continue
+            coords.setdefault(f"{round(lat, 3)},{round(lng, 3)}", (lat, lng))
 
+    sem = asyncio.Semaphore(_WEATHER_CONCURRENCY)
+
+    async def _fc(lat: float, lng: float):
+        async with sem:
+            return await weather_svc.get_forecast(lat, lng)
+
+    keys = list(coords.keys())
+    forecasts = await asyncio.gather(*[_fc(*coords[k]) for k in keys])
+    coord_cache: dict[str, dict | None] = dict(zip(keys, forecasts))
+
+    summary: list[dict] = []
     for day in draft.get("days", []):
         date_str = day.get("date", "")
         try:
@@ -31,9 +54,7 @@ async def weather_node(state: TravelAgentState) -> dict:
                 continue
 
             key = f"{round(lat, 3)},{round(lng, 3)}"
-            if key not in coord_cache:
-                coord_cache[key] = await weather_svc.get_forecast(lat, lng)
-            forecast = coord_cache[key]
+            forecast = coord_cache.get(key)
             if not forecast:
                 continue
 

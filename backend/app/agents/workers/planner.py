@@ -160,6 +160,12 @@ async def planner_node(state: TravelAgentState) -> dict:
         draft["itinerary_id"] = current.get("itinerary_id") or draft["itinerary_id"]
         cur_ver = int((current.get("meta") or {}).get("version", 1) or 1)
         draft["meta"]["version"] = cur_ver + 1
+    else:
+        # Vòng revise (critic → planner lần nữa): giữ nguyên id của bản nháp lượt trước để
+        # FE cập nhật ĐÚNG thẻ đang stream (nếu không, mỗi lượt sinh id mới → đẻ thẻ trùng).
+        prev = state.get("draft_itinerary")
+        if prev and prev.get("itinerary_id"):
+            draft["itinerary_id"] = prev["itinerary_id"]
 
     n_days = len(draft.get("days", []))
     mode = "modified" if is_modify else "built"

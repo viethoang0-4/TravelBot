@@ -37,8 +37,8 @@ export default function ChatPanel() {
     pendingClarify,
     addMessage,
     updateLastAssistantMessage,
-    addDraft,
-    updateDraftItinerary,
+    applyStreamingItinerary,
+    setPlanStage,
     startPlanning,
     stopPlanning,
     setIsStreaming,
@@ -125,6 +125,7 @@ export default function ChatPanel() {
       if (!reader) throw new Error("No response body");
 
       const decoder = new TextDecoder();
+      let buffer = "";
       let fullText = "";
       let itinerary: Itinerary | null = null;
       let clarify: ClarifyPayload | null = null;
@@ -133,8 +134,12 @@ export default function ChatPanel() {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+        // Một dòng SSE có thể bị mạng cắt qua nhiều chunk → gộp vào buffer, chỉ xử lý
+        // các dòng đã hoàn chỉnh, giữ lại phần dở dang cho lần đọc kế. (Sự kiện "itinerary"
+        // là JSON lớn nên hầu như luôn bị cắt khúc trên web → nếu không gộp sẽ mất event.)
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
 
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
@@ -149,6 +154,10 @@ export default function ChatPanel() {
               setStreamingStatus("");
             } else if (event.type === "itinerary") {
               itinerary = event.content;
+              // Hiển thị SỚM (progressive): cập nhật timeline NGAY ở mỗi mốc
+              // (drafting → enriching → ready) thay vì đợi hết đồ thị. Bỏ skeleton.
+              if (willPlan) stopPlanning();
+              applyStreamingItinerary(itinerary, event.stage ?? "ready");
             } else if (event.type === "questions") {
               // Agent cần thêm thông tin → hiện thẻ câu hỏi, bỏ skeleton
               clarify = event.content;
@@ -176,15 +185,8 @@ export default function ChatPanel() {
       }
 
       if (itinerary) {
-        // Sửa tại chỗ nếu id trùng lịch trình đã có; ngược lại tạo draft mới
-        const exists = useTravelStore
-          .getState()
-          .drafts.some((d) => d.draft_id === itinerary.itinerary_id);
-        if (exists) {
-          updateDraftItinerary(itinerary.itinerary_id, itinerary);
-        } else {
-          addDraft(itinerary);
-        }
+        // Draft đã được upsert tại chỗ trong vòng lặp (applyStreamingItinerary);
+        // ở đây chỉ gắn lịch trình cuối vào bong bóng chat của assistant.
         const updatedMsg: ChatMessageType = {
           id: nanoid(),
           role: "assistant",
@@ -210,6 +212,7 @@ export default function ChatPanel() {
       setStreamingText("");
       setStreamingStatus("");
       if (willPlan) stopPlanning();
+      setPlanStage(null); // mở khoá sửa/chốt (kể cả khi stream lỗi giữa chừng)
       // Lưu lịch sử trò chuyện của lịch trình đang active lên backend (giữ context qua reload)
       persistActiveConversation();
     }

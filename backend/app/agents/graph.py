@@ -50,8 +50,12 @@ def _route_after_supervisor(state: TravelAgentState) -> str:
 
 def _route_after_critic(state: TravelAgentState) -> str:
     settings = get_settings()
+    # Chỉ chạy lại planner khi critic báo "revise" VÀ có vấn đề KHÁCH QUAN (tuyến quá gấp
+    # theo Goong / thời tiết xấu / vượt ngân sách). Bỏ vòng revise do 'gu' LLM → nhanh hơn
+    # ~1 lượt planner lớn + đỡ quota, mà vẫn giữ tự-sửa khi thật sự bất khả thi.
     if (
         state.get("critic_verdict") == "revise"
+        and state.get("critic_hard_issues")
         and state.get("revision_count", 0) < settings.max_reflection_loops
     ):
         return "planner"

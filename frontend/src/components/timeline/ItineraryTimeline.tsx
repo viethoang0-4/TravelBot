@@ -19,6 +19,7 @@ import {
   Compass,
   CheckCircle2,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { mockItinerary } from "@/lib/mock-data";
 import { isActivityLocked } from "@/lib/activity-lock";
@@ -55,6 +56,8 @@ function formatDate(dateStr: string): string {
 
 export default function ItineraryTimeline() {
   const isPlanning = useTravelStore((s) => s.isPlanning);
+  const planStage = useTravelStore((s) => s.planStage);
+  const streamingDraftId = useTravelStore((s) => s.streamingDraftId);
   const itinerary = useActiveItinerary();
   const draft = useActiveDraft();
   const addDraft = useTravelStore((s) => s.addDraft);
@@ -104,8 +107,15 @@ export default function ItineraryTimeline() {
 
   const totalDays = itinerary.days.length;
   const isConfirmed = draft.status === "confirmed";
+  // Đang stream (chưa "ready") ĐÚNG thẻ này → khoá sửa/chốt: bản đang hiển thị chưa neo
+  // tọa độ/tuyến thật và critic có thể còn sửa lại; tránh thao tác trên bản tạm.
+  const isStreamingPlan =
+    planStage !== null &&
+    planStage !== "ready" &&
+    streamingDraftId === draft.draft_id;
 
   const handleDragEnd = (event: DragEndEvent, dayIdx: number) => {
+    if (isStreamingPlan) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -141,6 +151,14 @@ export default function ItineraryTimeline() {
     <div className="relative h-full">
       <ScrollArea className="h-full">
         <div className="p-4 pb-24 space-y-4">
+
+          {/* Dải trạng thái khi đang stream: bản đang xem còn được neo tọa độ/tuyến & thời tiết */}
+          {isStreamingPlan && (
+            <div className="flex items-center gap-2 rounded-md border border-terracotta/30 bg-terracotta/5 px-3 py-2 text-[13px] text-terracotta">
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <span>Đang xác thực tuyến đường & thời tiết…</span>
+            </div>
+          )}
 
           {/* === Glass card header === */}
           <div className="rounded-lg overflow-hidden shadow-sm border border-border relative">
@@ -287,7 +305,8 @@ export default function ItineraryTimeline() {
       >
         <Button
           onClick={() => setSummaryOpen(true)}
-          className="shadow-wf bg-terracotta hover:bg-terracotta-dark text-white border-0 h-11 px-5 rounded-md"
+          disabled={isStreamingPlan}
+          className="shadow-wf bg-terracotta hover:bg-terracotta-dark text-white border-0 h-11 px-5 rounded-md disabled:opacity-60"
         >
           <Sparkles className="w-4 h-4 mr-2" />
           {isConfirmed ? "Xem tóm tắt" : "Chốt hành trình này"}

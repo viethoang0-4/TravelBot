@@ -6,6 +6,7 @@ import {
   ClarifyPayload,
   Itinerary,
   ItineraryDraft,
+  PlanStage,
   RightPanelTab,
 } from "@/types/travel";
 import { Notification } from "@/types/notification";
@@ -49,6 +50,15 @@ interface TravelStore {
   /** Bước hiện tại trong skeleton (driven bởi heuristic + thời gian) */
   planningStep: PlanningStep;
 
+  /**
+   * Mốc hoàn thiện của lịch trình đang được stream (progressive rendering).
+   * null = không stream / đã xong. Khi khác null & != "ready" → timeline khoá
+   * sửa/chốt + hiện dải "đang xác thực..." (tránh chốt bản chưa neo tọa độ/tuyến).
+   */
+  planStage: PlanStage | null;
+  /** ID của draft đang được stream — để khoá ĐÚNG thẻ đó (không khoá nhầm thẻ khác nếu user chuyển) */
+  streamingDraftId: string | null;
+
   // ── Drafts (danh sách lịch trình) ─────────────────────
   drafts: ItineraryDraft[];
   /** ID của draft đang được hiển thị trên Right Panel */
@@ -90,6 +100,14 @@ interface TravelStore {
    * Tự động set draft này thành active.
    */
   addDraft: (itinerary: Itinerary) => void;
+  /**
+   * Áp itinerary nhận theo LUỒNG (progressive) vào draft: tạo mới nếu chưa có, ngược lại
+   * cập nhật TẠI CHỖ theo itinerary_id. KHÔNG lưu backend (chỉ lưu 1 lần ở cuối lượt chat
+   * qua persistActiveConversation) → tránh POST thừa ở mỗi mốc drafting/enriching.
+   */
+  applyStreamingItinerary: (itinerary: Itinerary, stage: PlanStage) => void;
+  /** Đặt mốc hoàn thiện của lịch trình đang stream (null = xong/không stream) */
+  setPlanStage: (stage: PlanStage | null) => void;
   /** Thay toàn bộ danh sách drafts + lịch sử chat (vd: hydrate từ backend khi đăng nhập) */
   setDrafts: (
     drafts: ItineraryDraft[],
@@ -213,6 +231,8 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
   messagesByDraft: {},
   isPlanning: false,
   planningStep: "intent",
+  planStage: null,
+  streamingDraftId: null,
 
   // Drafts
   drafts: [],
@@ -310,6 +330,44 @@ export const useTravelStore = create<TravelStore>((set, get) => ({
         activeTab: "timeline",
       };
     }),
+
+  applyStreamingItinerary: (itinerary, stage) =>
+    set((s) => {
+      const draftId = itinerary.itinerary_id;
+      const exists = s.drafts.some((d) => d.draft_id === draftId);
+      if (exists) {
+        // Cập nhật tại chỗ (giữ status/created_at của thẻ đang hiển thị).
+        return {
+          drafts: s.drafts.map((d) =>
+            d.draft_id === draftId
+              ? { ...d, itinerary, updated_at: nowIso() }
+              : d
+          ),
+          planStage: stage,
+          streamingDraftId: draftId,
+        };
+      }
+      // Lần đầu (mốc drafting): tạo thẻ + set active + nhảy sang tab lịch trình,
+      // KHÔNG lưu backend (persist ở cuối lượt). Conversation live (`messages`) giữ nguyên.
+      const draft: ItineraryDraft = {
+        draft_id: draftId,
+        itinerary,
+        status: "draft",
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      return {
+        drafts: [...s.drafts.filter((d) => d.draft_id !== draftId), draft],
+        activeDraftId: draftId,
+        activeTab: "timeline",
+        planStage: stage,
+        streamingDraftId: draftId,
+      };
+    }),
+
+  // Đặt null (cuối lượt / lỗi) → xoá luôn thẻ đang stream để mở khoá.
+  setPlanStage: (planStage) =>
+    set(planStage === null ? { planStage: null, streamingDraftId: null } : { planStage }),
 
   setDrafts: (drafts, messagesByDraft = {}) =>
     set((s) => {

@@ -31,6 +31,7 @@ class TravelAgentState(TypedDict, total=False):
     # ── Set by critic_node ───────────────────────────────────
     critic_verdict: Optional[str]     # "approved" | "revise"
     critic_feedback: Optional[str]    # consolidated issues + suggestions for the planner
+    critic_hard_issues: Optional[bool]  # có vấn đề KHÁCH QUAN (Goong/thời tiết/ngân sách) → mới cho revise
     revision_count: int               # how many times the planner has revised
 
     # ── Set by presenter_node / chat_node ────────────────────

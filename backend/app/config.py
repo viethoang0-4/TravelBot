@@ -55,8 +55,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_base_url: str = ""   # endpoint OpenAI-compatible (ckey.vn). Trống → OpenAI gốc.
 
-    # Reflection loop: how many times the Critic can send the plan back to the Planner
-    max_reflection_loops: int = 2
+    # Reflection loop: how many times the Critic can send the plan back to the Planner.
+    # 1 = tối đa 1 lượt sửa, và chỉ khi có vấn đề KHÁCH QUAN (xem _route_after_critic) →
+    # cắt thời gian + quota cho phần lớn request mà vẫn tự-sửa khi thật sự bất khả thi.
+    max_reflection_loops: int = 1
 
     # ── Goong Maps REST (grounding: neo tọa độ THẬT + tuyến đường/thời gian THẬT) ──
     # Chống ảo giác địa lý: planner LLM "đoán" lat/lng → thay bằng tọa độ thật của Goong,

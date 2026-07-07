@@ -76,12 +76,27 @@ def _signals(draft: dict, weather_summary: list[dict] | None) -> dict:
     return signals
 
 
+def _has_hard_issues(signals: dict, slots: dict | None) -> bool:
+    """Vấn đề KHÁCH QUAN, có căn cứ (đo bằng Goong/thời tiết/ngân sách) — chỉ những cái này
+    mới đáng để chạy lại cả planner. Dùng để chặn vòng revise do 'gu' của LLM (tốn thời gian
+    + quota mà không sửa lỗi thật)."""
+    budget_vnd = (slots or {}).get("budget_vnd")
+    declared = (signals.get("budget") or {}).get("declared_total") or 0
+    budget_over = bool(budget_vnd) and declared > float(budget_vnd) * 1.15
+    return (
+        bool(signals.get("tight_transitions"))
+        or bool(signals.get("weather_conflicts"))
+        or budget_over
+    )
+
+
 async def critic_node(state: TravelAgentState) -> dict:
     draft = state.get("draft_itinerary")
     if not draft:
-        return {"critic_verdict": "approved", "critic_feedback": None}
+        return {"critic_verdict": "approved", "critic_feedback": None, "critic_hard_issues": False}
 
     signals = _signals(draft, state.get("weather_summary"))
+    hard = _has_hard_issues(signals, state.get("slots"))
     ctx = (
         "Tín hiệu đã tính sẵn (dùng để đánh giá):\n"
         + json.dumps(signals, ensure_ascii=False, indent=2)
@@ -95,7 +110,7 @@ async def critic_node(state: TravelAgentState) -> dict:
     )
     if verdict is None:
         print("[CRITIC] no verdict, approving")
-        return {"critic_verdict": "approved", "critic_feedback": None}
+        return {"critic_verdict": "approved", "critic_feedback": None, "critic_hard_issues": hard}
 
     feedback = None
     if verdict.verdict == "revise":
@@ -103,5 +118,5 @@ async def critic_node(state: TravelAgentState) -> dict:
         sugg = "\n".join(f"- {s}" for s in verdict.suggestions) or "- (không có)"
         feedback = f"Vấn đề:\n{issues}\n\nGợi ý sửa:\n{sugg}"
 
-    print(f"[CRITIC] verdict={verdict.verdict} | issues={len(verdict.issues)}")
-    return {"critic_verdict": verdict.verdict, "critic_feedback": feedback}
+    print(f"[CRITIC] verdict={verdict.verdict} | issues={len(verdict.issues)} | hard_issues={hard}")
+    return {"critic_verdict": verdict.verdict, "critic_feedback": feedback, "critic_hard_issues": hard}
