@@ -8,6 +8,7 @@
  */
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import type { Borders } from "exceljs";
 import { Itinerary } from "@/types/travel";
 
 const safeFileName = (s: string) =>
@@ -121,6 +122,133 @@ export function exportItineraryAsICS(itinerary: Itinerary) {
   const link = document.createElement("a");
   link.href = url;
   link.download = `${safeFileName(itinerary.title)}.ics`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Excel (.xlsx) ─────────────────────────────────────────────────────────
+// Bảng "lên kế hoạch du lịch" quen thuộc: mỗi ngày một nhóm, các cột
+// Ngày / Thời gian / Hoạt động / Địa điểm / Loại / Chi phí / Ghi chú + dòng tổng.
+// Dùng exceljs, NẠP ĐỘNG để không phình bundle chính (chỉ tải khi bấm xuất).
+
+const _TYPE_LABEL_VI: Record<string, string> = {
+  transport: "Di chuyển",
+  accommodation: "Lưu trú",
+  food: "Ăn uống",
+  activity: "Tham quan",
+  shopping: "Mua sắm",
+  rest: "Thư giãn",
+};
+
+const _CELL_BORDER: Partial<Borders> = {
+  top: { style: "thin", color: { argb: "FFE7DDD5" } },
+  left: { style: "thin", color: { argb: "FFE7DDD5" } },
+  bottom: { style: "thin", color: { argb: "FFE7DDD5" } },
+  right: { style: "thin", color: { argb: "FFE7DDD5" } },
+};
+
+function _dmy(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-");
+  return d && m && y ? `${d}/${m}/${y}` : dateStr;
+}
+
+export async function exportItineraryAsExcel(itinerary: Itinerary) {
+  const { Workbook } = await import("exceljs");
+  const wb = new Workbook();
+  wb.creator = "Compasso";
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet("Lịch trình");
+  ws.columns = [
+    { key: "day", width: 7 },
+    { key: "time", width: 10 },
+    { key: "activity", width: 34 },
+    { key: "location", width: 28 },
+    { key: "type", width: 12 },
+    { key: "cost", width: 15 },
+    { key: "notes", width: 42 },
+  ];
+
+  const nf = new Intl.NumberFormat("vi-VN");
+
+  // Hàng 1: tiêu đề (gộp ô)
+  ws.mergeCells("A1:G1");
+  const title = ws.getCell("A1");
+  title.value = itinerary.title;
+  title.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+  title.alignment = { vertical: "middle", horizontal: "center" };
+  title.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC15F3C" } };
+  ws.getRow(1).height = 28;
+
+  // Hàng 2: phụ đề
+  ws.mergeCells("A2:G2");
+  const sub = ws.getCell("A2");
+  sub.value =
+    `${itinerary.destination}  •  ${_dmy(itinerary.start_date)} – ${_dmy(itinerary.end_date)}` +
+    `  •  ${itinerary.days.length} ngày  •  Tổng dự kiến: ${nf.format(itinerary.budget.total_estimated)} đ`;
+  sub.alignment = { vertical: "middle", horizontal: "center" };
+  sub.font = { size: 11, color: { argb: "FF7A7A7A" } };
+  ws.getRow(2).height = 20;
+
+  // Hàng 4: tiêu đề cột (chừa hàng 3 trống cho thoáng)
+  const headers = ["Ngày", "Thời gian", "Hoạt động", "Địa điểm", "Loại", "Chi phí (VND)", "Ghi chú"];
+  const head = ws.getRow(4);
+  head.height = 20;
+  headers.forEach((h, i) => {
+    const cell = head.getCell(i + 1);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.alignment = { vertical: "middle" };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C9A82" } };
+    cell.border = _CELL_BORDER;
+  });
+
+  for (const day of itinerary.days) {
+    // Hàng ngăn cách ngày (gộp ô)
+    const sepIdx = ws.rowCount + 1;
+    ws.mergeCells(`A${sepIdx}:G${sepIdx}`);
+    const sep = ws.getCell(`A${sepIdx}`);
+    sep.value = `Ngày ${day.day} — ${_dmy(day.date)}${day.theme ? "  •  " + day.theme : ""}`;
+    sep.font = { bold: true, color: { argb: "FF3B2E2A" } };
+    sep.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF4EAE3" } };
+    ws.getRow(sepIdx).height = 18;
+
+    for (const act of day.activities) {
+      const row = ws.addRow({
+        day: day.day,
+        time: act.time,
+        activity: act.title,
+        location: act.location?.name ?? "",
+        type: _TYPE_LABEL_VI[act.type] ?? act.type,
+        cost: act.cost_estimate || 0,
+        notes: act.tips || act.description || "",
+      });
+      row.alignment = { vertical: "top", wrapText: true };
+      row.getCell("cost").numFmt = "#,##0";
+      row.eachCell((cell) => {
+        cell.border = _CELL_BORDER;
+      });
+    }
+  }
+
+  // Dòng tổng chi phí
+  const total = ws.addRow({
+    activity: "TỔNG CHI PHÍ DỰ KIẾN",
+    cost: itinerary.budget.total_estimated,
+  });
+  total.getCell("activity").font = { bold: true };
+  const totalCost = total.getCell("cost");
+  totalCost.font = { bold: true };
+  totalCost.numFmt = "#,##0";
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${safeFileName(itinerary.title)}.xlsx`;
   link.click();
   URL.revokeObjectURL(url);
 }

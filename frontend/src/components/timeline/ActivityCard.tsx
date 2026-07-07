@@ -21,10 +21,8 @@ import {
   MapPin,
   Plane,
   ShoppingBag,
-  Star,
   Utensils,
   Wallet,
-  Gem,
   Lightbulb,
   CloudLightning,
 } from "lucide-react";
@@ -140,8 +138,6 @@ export default function ActivityCard({
     opacity: sortableProps.isDragging ? 0.5 : 1,
   };
 
-  const rating = activity.rating ?? 4 + Math.random() * 1;
-
   const handleViewOnMap = (e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedActivity(activity.id);
@@ -226,21 +222,6 @@ export default function ActivityCard({
                 </TooltipContent>
               </Tooltip>
             )}
-            {activity.is_hidden_gem && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Badge className="bg-acc-food text-white border-0 text-[11px] px-1.5 py-0 rounded-sm cursor-help">
-                      <Gem className="w-2.5 h-2.5 mr-0.5" />
-                      Điểm ẩn
-                    </Badge>
-                  }
-                />
-                <TooltipContent side="left">
-                  Địa điểm ẩn ít người biết — gợi ý riêng từ AI
-                </TooltipContent>
-              </Tooltip>
-            )}
           </div>
         )}
 
@@ -260,31 +241,23 @@ export default function ActivityCard({
               </TooltipContent>
             </Tooltip>
           ) : (
-            <>
-              {activity.is_hidden_gem && (
-                <Badge className="absolute top-2 right-10 bg-acc-food text-white border-0 text-[11px] px-1.5 py-0 rounded-sm">
-                  <Gem className="w-2.5 h-2.5 mr-0.5" />
-                  Điểm ẩn
-                </Badge>
-              )}
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      {...sortableProps.attributes}
-                      {...sortableProps.listeners}
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <GripVertical className="w-3.5 h-3.5" />
-                    </button>
-                  }
-                />
-                <TooltipContent side="left">
-                  Kéo để đổi thứ tự hoạt động
-                </TooltipContent>
-              </Tooltip>
-            </>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    {...sortableProps.attributes}
+                    {...sortableProps.listeners}
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-md bg-black/40 backdrop-blur-sm text-white flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <GripVertical className="w-3.5 h-3.5" />
+                  </button>
+                }
+              />
+              <TooltipContent side="left">
+                Kéo để đổi thứ tự hoạt động
+              </TooltipContent>
+            </Tooltip>
           )
         )}
 
@@ -294,12 +267,6 @@ export default function ActivityCard({
             {activity.title}
           </h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <div className="flex items-center gap-0.5 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-sm">
-              <Star className="w-2.5 h-2.5 text-acc-fun fill-acc-fun" />
-              <span className="text-[11px] text-white font-medium">
-                {rating.toFixed(1)}
-              </span>
-            </div>
             <span className="text-[11px] text-white/90 truncate">
               <MapPin className="w-2.5 h-2.5 inline mr-0.5" />
               {activity.location.name}

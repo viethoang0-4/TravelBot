@@ -119,6 +119,8 @@ export default function ChatPanel() {
         signal: abortRef.current.signal,
       });
 
+      if (res.status === 429)
+        throw new Error("Bạn đang thao tác quá nhanh — vui lòng đợi một chút rồi thử lại.");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const reader = res.body?.getReader();

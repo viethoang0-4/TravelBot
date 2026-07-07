@@ -16,7 +16,6 @@ import {
   CalendarDays,
   MapPin,
   Wallet,
-  Compass,
   CheckCircle2,
   Sparkles,
   Loader2,
@@ -260,40 +259,6 @@ export default function ItineraryTimeline() {
               </div>
             </div>
           ))}
-
-          {/* Hidden gems */}
-          {itinerary.hidden_gems.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-sage" />
-                <span className="font-semibold text-sm text-foreground">Điểm Ẩn Đề Xuất</span>
-                <Badge className="text-[13px] bg-sage/10 text-sage border-sage/20 rounded-sm">
-                  {itinerary.hidden_gems.length} địa điểm
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                {itinerary.hidden_gems.map((gem) => (
-                  <div
-                    key={gem.id}
-                    className="rounded-sm border border-sage/20 bg-sage/5 p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <p className="font-semibold text-sm text-foreground">{gem.name}</p>
-                      <Badge
-                        variant="outline"
-                        className="text-[11px] px-1.5 shrink-0 ml-2 text-sage border-sage/30 rounded-sm"
-                      >
-                        {Math.round(gem.confidence_score * 100)}%
-                      </Badge>
-                    </div>
-                    <p className="text-[13px] text-muted-foreground mt-0.5">
-                      {gem.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </ScrollArea>
 

@@ -1,28 +1,20 @@
 "use client";
 
-import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Itinerary } from "@/types/travel";
 import { Button } from "@/components/ui/button";
 import {
   CalendarPlus,
   CheckCircle2,
-  FileImage,
-  FileText,
+  FileSpreadsheet,
   Leaf,
   MapPin,
-  Share2,
   Sparkles,
   Wallet,
   X,
   XCircle,
 } from "lucide-react";
-import {
-  exportElementAsImage,
-  exportElementAsPdf,
-  exportItineraryAsICS,
-  shareItinerary,
-} from "@/lib/export";
+import { exportItineraryAsExcel } from "@/lib/export";
 import { useTravelStore } from "@/store/travel-store";
 
 interface Props {
@@ -43,7 +35,6 @@ function formatDate(dateStr: string): string {
 }
 
 export default function SummaryDashboard({ open, itinerary, draftId, onClose }: Props) {
-  const dashboardRef = useRef<HTMLDivElement>(null);
   const confirmDraft = useTravelStore((s) => s.confirmDraft);
   const unconfirmDraft = useTravelStore((s) => s.unconfirmDraft);
   const isConfirmed = useTravelStore(
@@ -90,7 +81,7 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                 <X className="w-4 h-4" />
               </button>
 
-              <div ref={dashboardRef} className="bg-background rounded-t-lg">
+              <div className="bg-background rounded-t-lg">
                 {/* Glass header (same pattern as ItineraryTimeline) */}
                 <div className="relative overflow-hidden rounded-t-lg">
                   <div className="absolute inset-0 bg-gradient-to-br from-terracotta/80 to-terracotta-dark/90" />
@@ -112,11 +103,10 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
 
                 <div className="p-6 space-y-5">
                   {/* Stats grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <StatBox icon={<Wallet className="w-4 h-4" />} label="Tổng chi phí" value={formatVND(itinerary.budget.total_estimated)} color="terracotta" />
                     <StatBox icon={<CalendarPlus className="w-4 h-4" />} label="Số ngày" value={`${itinerary.days.length} ngày`} color="sage" />
                     <StatBox icon={<CheckCircle2 className="w-4 h-4" />} label="Hoạt động" value={`${allActivities.length}`} color="transport" />
-                    <StatBox icon={<Sparkles className="w-4 h-4" />} label="Điểm ẩn" value={`${itinerary.hidden_gems.length}`} color="fun" />
                   </div>
 
                   {/* Budget breakdown bars */}
@@ -283,24 +273,14 @@ export default function SummaryDashboard({ open, itinerary, draftId, onClose }: 
                     Chốt hành trình này
                   </Button>
                 )}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <Button variant="outline" size="sm" onClick={() => exportItineraryAsICS(itinerary)} className="border-border hover:border-terracotta hover:text-terracotta">
-                    <CalendarPlus className="w-3.5 h-3.5 mr-1" />
-                    Lịch
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => shareItinerary(itinerary)} className="border-border hover:border-terracotta hover:text-terracotta">
-                    <Share2 className="w-3.5 h-3.5 mr-1" />
-                    Chia sẻ
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => exportElementAsPdf(dashboardRef.current, itinerary.title)} className="border-border hover:border-terracotta hover:text-terracotta">
-                    <FileText className="w-3.5 h-3.5 mr-1" />
-                    PDF
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => exportElementAsImage(dashboardRef.current, itinerary.title)} className="border-border hover:border-terracotta hover:text-terracotta">
-                    <FileImage className="w-3.5 h-3.5 mr-1" />
-                    Ảnh
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => exportItineraryAsExcel(itinerary)}
+                  className="w-full border-border hover:border-terracotta hover:text-terracotta"
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Xuất file Excel
+                </Button>
               </div>
             </div>
           </motion.div>

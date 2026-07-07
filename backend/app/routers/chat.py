@@ -13,7 +13,7 @@ SSE event format:
 import json
 import traceback
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from ..agents.graph import get_graph
@@ -22,6 +22,7 @@ from ..agents.workers.common import CLARIFY_INTRO, is_quota_error
 from ..auth.dependencies import get_current_user
 from ..db.base import ItineraryRepository
 from ..db.dependencies import get_itinerary_repo
+from ..limiter import limiter
 from ..models.chat import ChatRequest
 
 router = APIRouter()
@@ -35,9 +36,12 @@ def _sse(event_type: str, content=None, **extra) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+# Endpoint nặng nhất (mỗi lượt gọi LLM + Goong + Tavily) → siết chặt để bảo vệ quota.
 @router.post("/chat")
+@limiter.limit("20/minute")
 async def chat(
-    request: ChatRequest,
+    request: Request,
+    body: ChatRequest,
     current_user: dict = Depends(get_current_user),
     itinerary_repo: ItineraryRepository = Depends(get_itinerary_repo),
 ):
@@ -45,9 +49,9 @@ async def chat(
     user_id = current_user["user_id"]
 
     initial_state: TravelAgentState = {
-        "messages": [m.model_dump() for m in request.messages],
-        "image": request.image,
-        "current_itinerary": request.current_itinerary,
+        "messages": [m.model_dump() for m in body.messages],
+        "image": body.image,
+        "current_itinerary": body.current_itinerary,
         "user_preferences": current_user.get("preferences") or {},  # cá nhân hóa: nạp hồ sơ sở thích
         "revision_count": 0,
     }

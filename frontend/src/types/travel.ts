@@ -47,8 +47,6 @@ export interface Activity {
   image_url?: string;
   /** Cụm từ tìm ảnh do Planner LLM sinh (vd "Ha Long Bay cruise") — ưu tiên dùng để search Pexels */
   image_query?: string;
-  /** Đánh giá 0..5 sao (tuỳ chọn) */
-  rating?: number;
   /** Sự kiện cố định (chuyến bay, check-in/out...) — không cho phép drag-drop */
   is_locked?: boolean;
 }
