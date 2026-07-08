@@ -131,14 +131,45 @@ export function exportItineraryAsICS(itinerary: Itinerary) {
 // Ngày / Thời gian / Hoạt động / Địa điểm / Loại / Chi phí / Ghi chú + dòng tổng.
 // Dùng exceljs, NẠP ĐỘNG để không phình bundle chính (chỉ tải khi bấm xuất).
 
+// Planner LLM không tuân thủ chặt 6 loại chuẩn — nó còn sinh biến thể tiếng Anh
+// (sightseeing, leisure, cafe...). Quy hết về nhãn tiếng Việt; loại lạ → "Tham quan"
+// (khớp cách UI tự xếp loại không xác định vào nhóm activity).
 const _TYPE_LABEL_VI: Record<string, string> = {
   transport: "Di chuyển",
+  transportation: "Di chuyển",
+  travel: "Di chuyển",
   accommodation: "Lưu trú",
+  hotel: "Lưu trú",
+  stay: "Lưu trú",
   food: "Ăn uống",
-  activity: "Tham quan",
+  dining: "Ăn uống",
+  meal: "Ăn uống",
+  cafe: "Ăn uống",
+  coffee: "Ăn uống",
   shopping: "Mua sắm",
+  market: "Mua sắm",
   rest: "Thư giãn",
+  relax: "Thư giãn",
+  relaxation: "Thư giãn",
+  leisure: "Thư giãn",
+  spa: "Thư giãn",
+  wellness: "Thư giãn",
+  activity: "Tham quan",
+  sightseeing: "Tham quan",
+  sightsee: "Tham quan",
+  culture: "Tham quan",
+  cultural: "Tham quan",
+  nature: "Tham quan",
+  entertainment: "Giải trí",
+  nightlife: "Giải trí",
+  adventure: "Trải nghiệm",
+  sport: "Vận động",
+  sports: "Vận động",
 };
+
+function _typeLabel(t: string): string {
+  return _TYPE_LABEL_VI[(t || "").toLowerCase().trim()] ?? "Tham quan";
+}
 
 const _CELL_BORDER: Partial<Borders> = {
   top: { style: "thin", color: { argb: "FFE7DDD5" } },
@@ -219,7 +250,7 @@ export async function exportItineraryAsExcel(itinerary: Itinerary) {
         time: act.time,
         activity: act.title,
         location: act.location?.name ?? "",
-        type: _TYPE_LABEL_VI[act.type] ?? act.type,
+        type: _typeLabel(act.type),
         cost: act.cost_estimate || 0,
         notes: act.tips || act.description || "",
       });
